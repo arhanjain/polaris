@@ -18,13 +18,12 @@ from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass, field
 from isaaclab.app import AppLauncher
+import polaris.policy as policy_
 
 @dataclass
 class EvalArgs:
     usd: str
-    policy: str = ""
-    host: str = "0.0.0.0"
-    port: int = 8000
+    policy: policy_.PolicyArgs 
     headless: bool = True
     environment: str = "DROID-RoboSplat"
     # instructions: List[str] = field(default_factory=lambda: []) # TODO 
@@ -106,8 +105,17 @@ def main(eval_args: EvalArgs):
 
         external_cam = obs["splat"]["external_cam"]
 
-        cv2.imshow("test", external_cam)
-        cv2.waitKey(1)
+        from PIL import Image
+
+        im = Image.fromarray(external_cam)
+        im.save("test.png")
+        break
+
+    env.close()
+    simulation_app.close()
+
+        # cv2.imshow("test", external_cam)
+        # cv2.waitKey(1)
 
 
 

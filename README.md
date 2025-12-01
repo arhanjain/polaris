@@ -44,3 +44,10 @@ PolaRiS/
 └── README.md
 ```
 
+
+TODO
+- If nvcc, cuda toolkit isnt installed, what to do
+- supports CUDA 12 only
+- make sure the TORCH archirecutre list is correct (mineby default included way more than it needed)
+- have correct version of gxx (my versions was too new)
+- clear torch_extensions cache in between builds and env changes

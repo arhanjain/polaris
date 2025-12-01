@@ -16,14 +16,14 @@ gym.register(
         disable_env_checker=True,
         order_enforce = False,
         )
-gym.register(
-        id='DROID-nosplat',
-        entry_point=MangerBasedRLSplatEnv,
-        kwargs={
-            "env_cfg_entry_point": DroidCfg,
-        },
-        disable_env_checker=True
-        )
+# gym.register(
+#         id='DROID-nosplat',
+#         entry_point=MangerBasedRLSplatEnv,
+#         kwargs={
+#             "env_cfg_entry_point": DroidCfg,
+#         },
+#         disable_env_checker=True
+#         )
 # gym.register(
 #         id='DROID-Rel',
 #         entry_point=BaseEvalEnv2,

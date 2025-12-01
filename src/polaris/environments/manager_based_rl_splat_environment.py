@@ -18,9 +18,8 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setup_splat_world_and_robot_views()
-
+        self.setup_splat_robot()
         # if robot_splat:
-        #     self.setup_splat_robot()
 
     def reset(self, object_positions: dict = {}, expensive=True, *args, **kwargs):
         '''
@@ -142,6 +141,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         # Allocate robot splats and views on robot links to track
         more_splats = {}
         robot_asset_path = Path(self.cfg.scene.robot.spawn.usd_path).parent
+        breakpoint()
         for ply in sorted(list(robot_asset_path.glob("SEGMENTED/*.ply"))):
             more_splats[ply.stem] = ply
             sim_path = ply.stem.replace("-", "/")
