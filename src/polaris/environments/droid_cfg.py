@@ -41,7 +41,7 @@ class SceneCfg(InteractiveSceneCfg):
         width=1280,
         data_types=["rgb", "semantic_segmentation"],
         colorize_semantic_segmentation=False,
-        update_latest_camera_pose=True,
+        # update_latest_camera_pose=True,
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=2.8,
             focus_distance=28.0,
@@ -90,10 +90,6 @@ class SceneCfg(InteractiveSceneCfg):
                     ),
                 )
         self.scene = scene
-        if not robot_splat:
-            self.robot.spawn.semantic_tags = [("class", "raytraced")]
-        if "double" in nightmare:
-            self.robot.spawn.usd_path = str(DATA_PATH / "assets/nvidia_droid/textureless.usd")
         stage = Usd.Stage.Open(
             environment_path
         )
