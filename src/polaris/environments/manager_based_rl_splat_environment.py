@@ -36,8 +36,8 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
 
         # Following predefined initial conditions
         for obj, pose in object_positions.items():
+            print(f"Setting initial condition for {obj} to {pose}")
             pose = torch.tensor(pose)[None]
-            print(f"writing pose for {obj} {pose}")
             self.scene[obj].write_root_pose_to_sim(pose)
         self.sim.render()
         self.scene.update(0)
@@ -141,7 +141,6 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         # Allocate robot splats and views on robot links to track
         more_splats = {}
         robot_asset_path = Path(self.cfg.scene.robot.spawn.usd_path).parent
-        breakpoint()
         for ply in sorted(list(robot_asset_path.glob("SEGMENTED/*.ply"))):
             more_splats[ply.stem] = ply
             sim_path = ply.stem.replace("-", "/")

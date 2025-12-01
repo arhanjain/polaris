@@ -1,13 +1,54 @@
 import os
 import torch
+import json
+from datetime import datetime
 from pathlib import Path
 
 from isaaclab.envs import DirectRLEnvCfg, ManagerBasedRLEnvCfg
 from isaaclab_tasks.utils import load_cfg_from_registry 
 
-DATA_PATH = Path("./data").resolve() if "POLARIS_DATA_PATH" not in os.environ else Path(os.environ["POLARIS_DATA_PATH"]).resolve()
+DATA_PATH = Path("./PolaRiS-assets").resolve() if "POLARIS_DATA_PATH" not in os.environ else Path(os.environ["POLARIS_DATA_PATH"]).resolve()
 
+def load_eval_initial_conditions(initial_conditions_file: str | None, usd: str) -> tuple[str, dict]:
+    '''
+    If initial_conditions_file is provided, load the initial conditions from the file.
+    Otherwise, load the initial conditions from the USD file. If neither exist, raise an error.
+    '''
+    if initial_conditions_file is None:
+        initial_conditions_file_path = Path(usd).parent / "initial_conditions.json"
+    else:
+        initial_conditions_file_path = Path(initial_conditions_file)
+    if not initial_conditions_file_path.exists():
+        raise FileNotFoundError(
+            f"Either USD directory must have an initial_conditions.json file, or a custom initial_conditions_file must be provided.")
+    with open(initial_conditions_file_path, "r") as f:
+        initial_conditions = json.load(f)
 
+    # will have initial conditions and language instruction
+    if "instruction" not in initial_conditions or "poses" not in initial_conditions:
+        raise ValueError("Initial conditions ill formated. Must contain 'instruction' and 'poses' keys.")
+    instruction = initial_conditions["instruction"]
+    initial_conditions = initial_conditions["poses"]
+    return instruction, initial_conditions
+
+def run_folder_path(run_folder: str | None, usd: str, policy: str) -> Path:
+    '''
+    If run_folder is not provided, create a new run folder in the runs directory with the current date and time.
+    Otherwise, use the provided run folder.
+    '''
+    if not run_folder:
+        run_folder_path = f"runs/{datetime.now().strftime('%Y-%m-%d')}/{datetime.now().strftime('%I:%M:%S %p')}"
+    else:
+        run_folder_path = run_folder
+
+    run_folder_path = (
+        Path(run_folder_path)
+        / Path(usd).stem
+        / policy
+    )
+    print(f" >>> Saving to {run_folder} <<< ")
+    run_folder_path.mkdir(parents=True, exist_ok=True)
+    return run_folder_path
 
 def parse_env_cfg(
     task_name: str,

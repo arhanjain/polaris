@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
+import torch
+import numpy as np
 
 @dataclass
 class PolicyArgs:
@@ -29,7 +31,7 @@ class InferenceClient(ABC):
     def get_client(policy_args: PolicyArgs) -> 'InferenceClient':
         if policy_args.client not in InferenceClient.REGISTERED_CLIENTS:
             raise ValueError(f"Client {policy_args.client} not found. Available clients: {list(InferenceClient.REGISTERED_CLIENTS.keys())}")
-        return InferenceClient.REGISTERED_CLIENTS[policy_args.client].__init__(policy_args)
+        return InferenceClient.REGISTERED_CLIENTS[policy_args.client](policy_args)
 
     @abstractmethod
     def __init__(self, args) -> None:
@@ -38,7 +40,7 @@ class InferenceClient(ABC):
         """
         pass
 
-    @abstractmethod
+    @property
     def rerender(self) -> bool:
         """
         Policy requests a rerender of the visualization. Optimization for less splat rendering
@@ -47,9 +49,9 @@ class InferenceClient(ABC):
         return True
 
     @abstractmethod
-    def infer(self, obs, instruction) -> dict:
+    def infer(self, obs, instruction, return_viz: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
         """
-        Does inference on observation and returns action and visualization.
+        Does inference on observation and returns action and visualization. If visualization is not needed, return None.
         """
 
         pass
@@ -68,8 +70,7 @@ class FakeClient(InferenceClient):
     def __init__(self, *args, **kwargs) -> None:
         return
 
-    def infer(self, obs, instruction) -> dict:
-        import numpy as np
+    def infer(self, obs, instruction, return_viz: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
         import cv2
 
         external = obs["splat"]["external_cam"]
@@ -77,10 +78,7 @@ class FakeClient(InferenceClient):
         external = cv2.resize(external, (224, 224))
         wrist = cv2.resize(wrist, (224, 224))
         both = np.concatenate([external, wrist], axis=1)
-        return {
-            "action": np.zeros((8,)),
-            "viz": both,
-        }
+        return np.zeros((8,)), both
 
     def reset(self, *args, **kwargs):
         return

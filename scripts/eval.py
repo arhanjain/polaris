@@ -11,6 +11,7 @@ import numpy as np
 import random
 import time
 import json
+import pandas as pd
 
 
 from typing import List
@@ -22,22 +23,13 @@ import polaris.policy as policy_
 
 @dataclass
 class EvalArgs:
-    usd: str
-    policy: policy_.PolicyArgs 
-    headless: bool = True
-    environment: str = "DROID-RoboSplat"
-    # instructions: List[str] = field(default_factory=lambda: []) # TODO 
-    # rollouts: int = 10 # TODO: make this the number of initial conditions provided
-
-    run_folder: str | None = None
-    # visualize: bool = False
-    # object_positions: List[dict] = field(default_factory=lambda: [{}]) # [{object_name: (x, y, z, qw, qx, qy, qz)}]
-    # object_positions_file: str | None = None
-    # platform: str = "DROID"
-    # robot_splat: bool = False
-    # diffusion: bool = False
-    # pure_sim: bool = False
-    # nightmare: bool = False
+    usd: str                                        # Path to the USD file
+    policy: policy_.PolicyArgs                      # Policy arguments
+    headless: bool = True                           # Whether to run the simulation in headless mode
+    environment: str = "DROID-RoboSplat"            # Which IsaacLab environment to use
+    initial_conditions_file: str | None = None      # Path to the initial conditions file, overrides the one in the USD directory
+    instruction: str | None = None                  # Override the language instruction in the initial conditions file 
+    run_folder: str | None = None                   # Path to the run folder, overrides the default run folder
 
 def main(eval_args: EvalArgs):
     # This must be done before importing anything from IsaacLab 
@@ -56,9 +48,30 @@ def main(eval_args: EvalArgs):
     # >>>> Isaac Sim App Launcher <<<<
 
     import polaris.environments
-    from polaris.utils import parse_env_cfg
+    from polaris.environments.manager_based_rl_splat_environment import MangerBasedRLSplatEnv
+    from polaris.utils import parse_env_cfg, load_eval_initial_conditions, run_folder_path
+    from polaris.policy import InferenceClient
     # from real2simeval.autoscoring import TASK_TO_SUCCESS_CHECKER
 
+    # TODO: Success checker
+    language_instruction, initial_conditions = load_eval_initial_conditions(eval_args.initial_conditions_file, eval_args.usd)
+    rollouts = len(initial_conditions)
+    run_folder = run_folder_path(eval_args.run_folder, eval_args.usd, eval_args.policy.name)
+    # Resume CSV logging
+    csv_path = run_folder / "eval_results.csv"
+    if csv_path.exists():
+        episode_df = pd.read_csv(csv_path)
+    else:
+        episode_df = pd.DataFrame({
+            'episode': pd.Series(dtype='int'),
+            'episode_length': pd.Series(dtype='int'),
+        })
+    episode = len(episode_df)
+    if episode >= rollouts:
+        print(f"All rollouts have been evaluated. Exiting.")
+        return
+
+    policy_client: InferenceClient = InferenceClient.get_client(eval_args.policy)
     env_cfg = parse_env_cfg(
         eval_args.environment,
         usd_file=eval_args.usd,
@@ -66,58 +79,48 @@ def main(eval_args: EvalArgs):
         num_envs=1,
         use_fabric=True,
     )
-
-    env = gym.make(eval_args.environment, cfg=env_cfg)
-
-
-    run_folder = eval_args.run_folder
-    if not run_folder:
-        run_folder = f"runs/{datetime.now().strftime('%Y-%m-%d')}/{datetime.now().strftime('%I:%M:%S %p')}"
-
-    run_folder = (
-        Path(run_folder)
-        / Path(eval_args.usd).stem
-        / eval_args.policy
-    )
-    print(f" >>> Saving to {run_folder} <<< ")
-    run_folder.mkdir(parents=True, exist_ok=True)
-    episode = len(
-        list(run_folder.glob("*.mp4"))
-    )  # check if rollouts exist in run_folder
-    # if episode >= eval_args.rollouts:
-    if episode >= 5:
-        print(f"All rollouts have been evaluated. Exiting.")
-        return
-    print(f" >>> Starting eval job from episode {episode} <<< ")
+    env: MangerBasedRLSplatEnv = gym.make(eval_args.environment, cfg=env_cfg)   # type: ignore
 
     video = []
-    horizon = env.unwrapped.max_episode_length
+    horizon = env.max_episode_length
     bar = tqdm.tqdm(range(horizon))
-    successes = 0.0
-    # obs, info = env.reset(object_positions = object_positions[episode % len(object_positions)], expensive=not eval_args.pure_sim)
-    obs, info = env.reset()
-
-    # curr_instruction = random.choice(eval_args.instructions)
-    # client.reset(task_description=curr_instruction)
-    # success_labeler.reset(curr_instruction)
+    obs, info = env.reset(object_positions = initial_conditions[episode % len(initial_conditions)])
+    policy_client.reset()
+    print(f" >>> Starting eval job from episode {episode + 1} of {rollouts} <<< ")
     while True:
-        obs, rew, term, trunc, info = env.step(torch.zeros(1, env.unwrapped.action_space.shape[1]), expensive=True)
+        action, viz = policy_client.infer(obs, language_instruction)
+        if viz is not None:
+            video.append(viz)
+        obs, rew, term, trunc, info = env.step(torch.tensor(action).reshape(1, -1), expensive=policy_client.rerender)
 
-        external_cam = obs["splat"]["external_cam"]
+        bar.update(1)
+        if term[0] or trunc[0] or bar.n >= horizon:
+            policy_client.reset()
 
-        from PIL import Image
+            # Save video and metadata
+            filename = run_folder / f"episode_{episode}.mp4"
+            mediapy.write_video(filename, video, fps=15)
 
-        im = Image.fromarray(external_cam)
-        im.save("test.png")
-        break
+            # Log episode results to CSV
+            episode_data = {
+                'episode': episode,
+                'episode_length': bar.n,
+            }
+            episode_df = pd.concat([episode_df, pd.DataFrame([episode_data])], ignore_index=True)
+            episode_df.to_csv(csv_path, index=False)
+
+            bar.close()
+            print(f"Episode {episode} finished. Episode length: {bar.n}")
+            bar = tqdm.tqdm(range(horizon))
+            obs, info = env.reset(object_positions = initial_conditions[episode % len(initial_conditions)])
+
+            episode += 1
+            video = []
+            if episode >= rollouts:
+                break
 
     env.close()
     simulation_app.close()
-
-        # cv2.imshow("test", external_cam)
-        # cv2.waitKey(1)
-
-
 
 
 if __name__ == "__main__":

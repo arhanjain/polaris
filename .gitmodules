@@ -1,3 +1,6 @@
 [submodule "src/diff-surfel-rasterization/third_party/glm"]
 	path = src/diff-surfel-rasterization/third_party/glm
 	url = git@github.com:g-truc/glm.git
+[submodule "third_party/openpi"]
+	path = third_party/openpi
+	url = git@github.com:Physical-Intelligence/openpi.git

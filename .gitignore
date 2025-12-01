@@ -1,5 +1,7 @@
 # Custom
 data/
+runs/
+PolaRiS-assets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
