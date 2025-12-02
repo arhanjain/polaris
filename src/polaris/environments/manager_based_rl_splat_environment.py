@@ -59,7 +59,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         #     for cam in self.scene.sensors:
         #         if isinstance(self.scene.sensors[cam], Camera):
         #             obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
-        obs["splat"] = self.custom_render(expensive)
+        obs["splat"] = self.custom_render(expensive, transform_static=True)
 
         return obs, info
 
@@ -97,12 +97,12 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
 
         return obs, rew, done, trunc, info
 
-    def custom_render(self, expensive: bool):
+    def custom_render(self, expensive: bool, transform_static: bool = False):
         '''
         Render the environment
         '''
         if expensive:
-            self.transform_sim_to_splat()
+            self.transform_sim_to_splat(transform_static=transform_static)
             rgb = self.render_splat()
             mask_and_rgb = self.get_robot_from_sim()
             for cam in mask_and_rgb:
