@@ -42,24 +42,24 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         self.sim.render()
         self.scene.update(0)
         obs = self.observation_manager.compute() # update observation after setting ICs if needed
+        # if expensive:
+        #     self.transform_sim_to_splat(transform_static=True)
+        #     rgb = self.render_splat()
+        #     obs["splat"] = rgb
 
-        if expensive:
-            self.transform_sim_to_splat(transform_static=True)
-            rgb = self.render_splat()
-            obs["splat"] = rgb
-
-            mask_and_rgb = self.get_robot_from_sim()
-            for cam in mask_and_rgb:
-                og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
-                mask = mask_and_rgb[cam]["mask"]
-                sim_img = mask_and_rgb[cam]["rgb"]
-                new_img = np.where(mask, sim_img, og_img)
-                rgb[cam] = new_img
-        else:
-            obs["splat"] = {}
-            for cam in self.scene.sensors:
-                if isinstance(self.scene.sensors[cam], Camera):
-                    obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+        #     mask_and_rgb = self.get_robot_from_sim()
+        #     for cam in mask_and_rgb:
+        #         og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
+        #         mask = mask_and_rgb[cam]["mask"]
+        #         sim_img = mask_and_rgb[cam]["rgb"]
+        #         new_img = np.where(mask, sim_img, og_img)
+        #         rgb[cam] = new_img
+        # else:
+        #     obs["splat"] = {}
+        #     for cam in self.scene.sensors:
+        #         if isinstance(self.scene.sensors[cam], Camera):
+        #             obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+        obs["splat"] = self.custom_render(expensive)
 
         return obs, info
 
@@ -76,11 +76,34 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         '''
         obs, rew, done, trunc, info = super().step(action)
 
+        # if expensive:
+        #     self.transform_sim_to_splat()
+        #     rgb = self.render_splat()
+        #     obs["splat"] = rgb
+
+        #     mask_and_rgb = self.get_robot_from_sim()
+        #     for cam in mask_and_rgb:
+        #         og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
+        #         mask = mask_and_rgb[cam]["mask"]
+        #         sim_img = mask_and_rgb[cam]["rgb"]
+        #         new_img = np.where(mask, sim_img, og_img)
+        #         rgb[cam] = new_img
+        # else:
+        #     obs["splat"] = {}
+        #     for cam in self.scene.sensors:
+        #         if isinstance(self.scene.sensors[cam], Camera):
+        #             obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+        obs["splat"] = self.custom_render(expensive)
+
+        return obs, rew, done, trunc, info
+
+    def custom_render(self, expensive: bool):
+        '''
+        Render the environment
+        '''
         if expensive:
             self.transform_sim_to_splat()
             rgb = self.render_splat()
-            obs["splat"] = rgb
-
             mask_and_rgb = self.get_robot_from_sim()
             for cam in mask_and_rgb:
                 og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
@@ -89,12 +112,12 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
                 new_img = np.where(mask, sim_img, og_img)
                 rgb[cam] = new_img
         else:
-            obs["splat"] = {}
+            rgb = {}
             for cam in self.scene.sensors:
                 if isinstance(self.scene.sensors[cam], Camera):
-                    obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
-
-        return obs, rew, done, trunc, info
+                    rgb[cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+        return rgb
+        
 
     def setup_splat_world_and_robot_views(self):
         splats = {}
