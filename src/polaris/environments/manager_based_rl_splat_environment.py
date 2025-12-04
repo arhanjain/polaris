@@ -5,21 +5,45 @@ import numpy as np
 
 from isaaclab.sensors.camera.camera import Camera
 import isaaclab.utils.math as math
-from isaaclab.envs import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from isaacsim.core.prims import GeometryPrim
 from isaacsim.core.utils.stage import get_current_stage
 from pxr import Semantics
 
 from polaris.splat_renderer import SplatRenderer
 from polaris.utils import DATA_PATH
+from polaris.environments.rubrics import Rubric, RubricResult
+
 
 class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
-    # def __init__(self, robot_splat: bool, *args, **kwargs):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    
+    rubric: Rubric | None = None
+    _task_name: str | None = None
+    
+    def __init__(self, cfg: ManagerBasedRLEnvCfg, *args, rubric: Rubric | None = None, usd_file: str | None = None, **kwargs):        
+
+        # do dynamic setup here maybe
+        if usd_file is not None:
+            cfg.dynamic_setup(usd_file)
+
+        super().__init__(cfg=cfg, *args, **kwargs)
         self.setup_splat_world_and_robot_views()
         self.setup_splat_robot()
-        # if robot_splat:
+        self.rubric = rubric
+
+    def _evaluate_rubric(self) -> dict:
+        """Evaluate rubric and return results for info dict."""
+        if self.rubric is None:
+            return {}
+        
+        result = self.rubric.evaluate(self)
+        return {
+            "rubric": {
+                "success": result.success,
+                "progress": result.progress,
+                "metrics": result.metrics,
+            }
+        }
 
     def reset(self, object_positions: dict = {}, expensive=True, *args, **kwargs):
         '''
@@ -34,6 +58,10 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         '''
         obs, info = super().reset(*args, **kwargs)
 
+        # Reset rubric state
+        if self.rubric:
+            self.rubric.reset()
+
         # Following predefined initial conditions
         for obj, pose in object_positions.items():
             print(f"Setting initial condition for {obj} to {pose}")
@@ -41,25 +69,11 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             self.scene[obj].write_root_pose_to_sim(pose)
         self.sim.render()
         self.scene.update(0)
-        obs = self.observation_manager.compute() # update observation after setting ICs if needed
-        # if expensive:
-        #     self.transform_sim_to_splat(transform_static=True)
-        #     rgb = self.render_splat()
-        #     obs["splat"] = rgb
+        obs = self.observation_manager.compute()  # update observation after setting ICs if needed
+        obs["splat"] = self.custom_render(expensive, transform_static=True)
 
-        #     mask_and_rgb = self.get_robot_from_sim()
-        #     for cam in mask_and_rgb:
-        #         og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
-        #         mask = mask_and_rgb[cam]["mask"]
-        #         sim_img = mask_and_rgb[cam]["rgb"]
-        #         new_img = np.where(mask, sim_img, og_img)
-        #         rgb[cam] = new_img
-        # else:
-        #     obs["splat"] = {}
-        #     for cam in self.scene.sensors:
-        #         if isinstance(self.scene.sensors[cam], Camera):
-        #             obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
-        obs["splat"] = self.custom_render(expensive)
+        # Evaluate rubric and add to info
+        info.update(self._evaluate_rubric())
 
         return obs, info
 
@@ -75,34 +89,20 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             Whether to perform expensive (splat) rendering operations.
         '''
         obs, rew, done, trunc, info = super().step(action)
-
-        # if expensive:
-        #     self.transform_sim_to_splat()
-        #     rgb = self.render_splat()
-        #     obs["splat"] = rgb
-
-        #     mask_and_rgb = self.get_robot_from_sim()
-        #     for cam in mask_and_rgb:
-        #         og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
-        #         mask = mask_and_rgb[cam]["mask"]
-        #         sim_img = mask_and_rgb[cam]["rgb"]
-        #         new_img = np.where(mask, sim_img, og_img)
-        #         rgb[cam] = new_img
-        # else:
-        #     obs["splat"] = {}
-        #     for cam in self.scene.sensors:
-        #         if isinstance(self.scene.sensors[cam], Camera):
-        #             obs["splat"][cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
         obs["splat"] = self.custom_render(expensive)
+        # obs["splat"] = {cam: self.get_robot_from_sim()[cam]["rgb"] for cam in self.get_robot_from_sim()}
+
+        # Evaluate rubric and add to info
+        info.update(self._evaluate_rubric())
 
         return obs, rew, done, trunc, info
 
-    def custom_render(self, expensive: bool):
+    def custom_render(self, expensive: bool, transform_static: bool = False):
         '''
         Render the environment
         '''
         if expensive:
-            self.transform_sim_to_splat()
+            self.transform_sim_to_splat(transform_static=transform_static)
             rgb = self.render_splat()
             mask_and_rgb = self.get_robot_from_sim()
             for cam in mask_and_rgb:

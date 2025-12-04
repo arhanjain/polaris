@@ -18,6 +18,7 @@ def load_eval_initial_conditions(initial_conditions_file: str | None, usd: str) 
         initial_conditions_file_path = Path(usd).parent / "initial_conditions.json"
     else:
         initial_conditions_file_path = Path(initial_conditions_file)
+
     if not initial_conditions_file_path.exists():
         raise FileNotFoundError(
             f"Either USD directory must have an initial_conditions.json file, or a custom initial_conditions_file must be provided.")
@@ -46,7 +47,7 @@ def run_folder_path(run_folder: str | None, usd: str, policy: str) -> Path:
         / Path(usd).stem
         / policy
     )
-    print(f" >>> Saving to {run_folder} <<< ")
+    print(f" >>> Saving to {run_folder_path} <<< ")
     run_folder_path.mkdir(parents=True, exist_ok=True)
     return run_folder_path
 

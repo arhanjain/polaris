@@ -17,29 +17,20 @@ import pandas as pd
 from typing import List
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass, field
 from isaaclab.app import AppLauncher
-import polaris.policy as policy_
 
-@dataclass
-class EvalArgs:
-    usd: str                                        # Path to the USD file
-    policy: policy_.PolicyArgs                      # Policy arguments
-    headless: bool = True                           # Whether to run the simulation in headless mode
-    environment: str = "DROID-RoboSplat"            # Which IsaacLab environment to use
-    initial_conditions_file: str | None = None      # Path to the initial conditions file, overrides the one in the USD directory
-    instruction: str | None = None                  # Override the language instruction in the initial conditions file 
-    run_folder: str | None = None                   # Path to the run folder, overrides the default run folder
+from polaris.config import EvalArgs
 
 def main(eval_args: EvalArgs):
     # This must be done before importing anything from IsaacLab 
     # Inside main function for compatibility with HPC cluster python launch scripts
     # >>>> Isaac Sim App Launcher <<<<
     parser = argparse.ArgumentParser()
-    AppLauncher.add_app_launcher_args(parser)
+    args_cli, _ = parser.parse_known_args()
+    # AppLauncher.add_app_launcher_args(parser)
 
-    args_cli, other_args = parser.parse_known_args()
-    sys.argv = [sys.argv[0]] + other_args  # clear out sys.argv for hydra
+    # args_cli, other_args = parser.parse_known_args()
+    # sys.argv = [sys.argv[0]] + other_args  # clear out sys.argv for hydra
     args_cli.enable_cameras = True
     args_cli.headless = eval_args.headless
 
@@ -48,15 +39,16 @@ def main(eval_args: EvalArgs):
     # >>>> Isaac Sim App Launcher <<<<
 
     import polaris.environments
+    from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
     from polaris.environments.manager_based_rl_splat_environment import MangerBasedRLSplatEnv
-    from polaris.utils import parse_env_cfg, load_eval_initial_conditions, run_folder_path
+    from polaris.utils import load_eval_initial_conditions, run_folder_path
     from polaris.policy import InferenceClient
     # from real2simeval.autoscoring import TASK_TO_SUCCESS_CHECKER
 
     # TODO: Success checker
     language_instruction, initial_conditions = load_eval_initial_conditions(eval_args.initial_conditions_file, eval_args.usd)
     rollouts = len(initial_conditions)
-    run_folder = run_folder_path(eval_args.run_folder, eval_args.usd, eval_args.policy.name)
+    run_folder = run_folder_path(eval_args.run_folder, eval_args.environment, eval_args.policy.name)
     # Resume CSV logging
     csv_path = run_folder / "eval_results.csv"
     if csv_path.exists():
@@ -65,6 +57,8 @@ def main(eval_args: EvalArgs):
         episode_df = pd.DataFrame({
             'episode': pd.Series(dtype='int'),
             'episode_length': pd.Series(dtype='int'),
+            'success': pd.Series(dtype='bool'),
+            'progress': pd.Series(dtype='float'),
         })
     episode = len(episode_df)
     if episode >= rollouts:
@@ -74,8 +68,8 @@ def main(eval_args: EvalArgs):
     policy_client: InferenceClient = InferenceClient.get_client(eval_args.policy)
     env_cfg = parse_env_cfg(
         eval_args.environment,
-        usd_file=eval_args.usd,
-        device=args_cli.device,
+        # usd_file=eval_args.usd,
+        device="cuda",
         num_envs=1,
         use_fabric=True,
     )
@@ -92,6 +86,7 @@ def main(eval_args: EvalArgs):
         if viz is not None:
             video.append(viz)
         obs, rew, term, trunc, info = env.step(torch.tensor(action).reshape(1, -1), expensive=policy_client.rerender)
+        # obs, rew, term, trunc, info = env.step(torch.tensor(action).reshape(1, -1), expensive=True)
 
         bar.update(1)
         if term[0] or trunc[0] or bar.n >= horizon:
@@ -105,6 +100,8 @@ def main(eval_args: EvalArgs):
             episode_data = {
                 'episode': episode,
                 'episode_length': bar.n,
+                'success': info['rubric']['success'],
+                'progress': info['rubric']['progress'],
             }
             episode_df = pd.concat([episode_df, pd.DataFrame([episode_data])], ignore_index=True)
             episode_df.to_csv(csv_path, index=False)

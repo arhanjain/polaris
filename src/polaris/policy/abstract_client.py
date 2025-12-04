@@ -1,16 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Callable
 import torch
 import numpy as np
 
-@dataclass
-class PolicyArgs:
-    name: str # name of the policy (pi05_droid_jointpos, pi0_fast_droid_jointpos, etc.)
-    client: str # name of the client (DroidJointPos, Fake, etc.)
-    host: str = "0.0.0.0"
-    port: int = 8000
-    open_loop_horizon: int | None = None
+from polaris.config import PolicyArgs
 
 
 class InferenceClient(ABC):

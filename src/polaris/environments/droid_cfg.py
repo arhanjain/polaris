@@ -20,12 +20,24 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.envs import ManagerBasedRLEnv, ManagerBasedRLEnvCfg
-from isaaclab.sensors import CameraCfg
+from isaaclab.sensors import CameraCfg, Camera
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import (
     FrameTransformerCfg,
     OffsetCfg,
 )
 from isaaclab.markers.config import FRAME_MARKER_CFG
+from isaacsim.core.prims import RigidPrim
+
+
+# Hack to fix updating camera poses, since it's broken in IsaacLab 2.3
+class FixedCamera(Camera):
+    def _initialize_impl(self):
+        super()._initialize_impl()
+        self._view = RigidPrim(self.cfg.prim_path, reset_xform_properties=False)
+        self._view.initialize()
+
+class FixedCameraCfg(CameraCfg):
+    class_type = FixedCamera
 
 ### SceneCfg ###
 @configclass
@@ -36,6 +48,7 @@ class SceneCfg(InteractiveSceneCfg):
     robot = NVIDIA_DROID 
     
     wrist_cam = CameraCfg(
+    # wrist_cam = FixedCameraCfg(
         prim_path="{ENV_REGEX_NS}/robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
         height=720,
         width=1280,
@@ -301,7 +314,8 @@ class EnvCfg(ManagerBasedRLEnvCfg):
     curriculum = CurriculumCfg()
 
     def __post_init__(self):
-        self.episode_length_s = 30
+        # self.episode_length_s = 30
+        self.episode_length_s = 5
 
         self.viewer.eye = (4.5, 0.0, 6.0)
         self.viewer.lookat = (0.0, 0.0, 0.0)
@@ -316,173 +330,3 @@ class EnvCfg(ManagerBasedRLEnvCfg):
         self.scene.dynamic_setup(*args)
 
 #### END DROID ####
-
-
-def ee_pose(
-    env: ManagerBasedRLEnv,
-    robot_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    ee_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-) -> torch.Tensor:
-    robot: RigidObject = env.scene[robot_cfg.name]
-    ee_frame: FrameTransformer = env.scene[ee_frame_cfg.name]
-
-    ee_pos_w = ee_frame.data.target_pos_w[..., 0, :]  
-    ee_quat_w = ee_frame.data.target_quat_w[..., 0, :]
-    robot_pos_w = robot.data.root_pos_w
-    robot_quat_w = robot.data.root_quat_w
-
-    ee_pos_b, ee_quat_b = math.subtract_frame_transforms(
-        robot_pos_w, robot_quat_w,
-        ee_pos_w, ee_quat_w
-    )
-
-    return torch.cat((ee_pos_b, ee_quat_b), dim=1)
-
-def rigid_body_pose(
-    env: ManagerBasedRLEnv,
-    asset_cfg: SceneEntityCfg,
-) -> torch.Tensor:
-    asset: RigidObject = env.scene[asset_cfg.name]
-
-    pos = asset.data.root_pos_w
-    quat = asset.data.root_quat_w
-
-    return torch.cat([pos, quat], dim=-1)
-
-def reset_root_state_uniform_absolute(
-    env: ManagerBasedRLEnv,
-    env_ids: torch.Tensor,
-    dist_from_bounds: float,
-    pose_range: dict[str, tuple[float, float]],
-    velocity_range: dict[str, tuple[float, float]],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-):
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject | Articulation = env.scene[asset_cfg.name]
-    # get default root state
-    root_states = asset.data.default_root_state[env_ids].clone()
-
-    # poses
-    # range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"] if key != "x" and key != "y" else pose_rangeA
-    range_list = []
-    # x and y
-    range_list.append((pose_range["x"][0] + dist_from_bounds, pose_range["x"][1] - dist_from_bounds))
-    range_list.append((pose_range["y"][0] + dist_from_bounds, pose_range["z"][1] - dist_from_bounds))
-    range_list = range_list + [pose_range.get(key, (0.0, 0.0)) for key in ["z", "roll", "pitch", "yaw"]]
-
-    ranges = torch.tensor(range_list, device=asset.device, dtype=torch.float)
-    rand_samples = math.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
-
-
-    # positions = root_states[:, 0:3] + env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
-    positions = env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
-    orientations_delta = math.quat_from_euler_xyz(rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5])
-    orientations = math.quat_mul(root_states[:, 3:7], orientations_delta)
-    # velocities
-    range_list = [velocity_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
-    ranges = torch.tensor(range_list, device=asset.device)
-    rand_samples = math.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
-
-    velocities = root_states[:, 7:13] + rand_samples
-
-    # set into the physics simulation
-    asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
-    asset.write_root_velocity_to_sim(velocities, env_ids=env_ids)
-
-def all_joints(
-    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
-):
-    robot = env.scene[asset_cfg.name]
-    joint_pos = robot.data.joint_pos.clone()
-    return joint_pos
-
-@configclass
-class EnvRelCfg(EnvCfg):
-    def __init__(self):
-        super().__init__()
-    
-        self.episode_length_s = 3000
-
-        self.actions.arm = mdp.DifferentialInverseKinematicsActionCfg(
-             asset_name="robot",
-             joint_names=["panda_joint.*"],
-             body_name="base_link",
-             controller=mdp.DifferentialIKControllerCfg(
-                 command_type="pose", use_relative_mode=True, ik_method="dls"
-                 ),
-             body_offset=mdp.DifferentialInverseKinematicsActionCfg.OffsetCfg(
-                 pos=(0.0, 0.0, 0.0),
-                 ),
-        )
-
-        self.observations.policy.ee_pose = ObsTerm(func=ee_pose) # ee frame
-        self.observations.policy.all_joints = ObsTerm(func=all_joints) # all joint positions
-
-    # for data collection randomized resets, and all rigid body pose observations
-    def dynamic_setup(self, environment_path):
-        super().dynamic_setup(environment_path)
-
-        initial_conditions_path = Path(environment_path).parent.resolve() / "initial_conditions.json"
-
-        #     initial_conditions_dict = json.load(f)
-        #     pose_range = initial_conditions_dict["pose_range"]
-
-        stage = Usd.Stage.Open(
-            environment_path
-        )
-
-        # try to get the workspace bbox 
-        randomization_prim = stage.GetPrimAtPath("/randomization")
-        bbox_cache = UsdGeom.BBoxCache(    time=Usd.TimeCode.Default(),    includedPurposes=[UsdGeom.Tokens.default_])
-        box = bbox_cache.ComputeLocalBound(randomization_prim)
-        randomization_bbox =  box.ComputeAlignedBox()
-        randomization_min, randomization_max = randomization_bbox.GetMin(), randomization_bbox.GetMax()
-        pose_range = {
-            "x": (randomization_min[0], randomization_max[0]),
-            "y": (randomization_min[1], randomization_max[1]),
-            "z": (randomization_min[2], randomization_max[2]),
-        }
-
-        
-        scene_prim = stage.GetPrimAtPath("/World")
-        children = scene_prim.GetChildren()
-        for child in children:
-            # if rigid body
-            name = child.GetName()
-            child_rigid = UsdPhysics.RigidBodyAPI(child)
-            if not child_rigid:
-                continue
-
-            # Observations
-            obsterm = ObsTerm(
-                    func = rigid_body_pose,
-                    params = {
-                        "asset_cfg" : SceneEntityCfg(name),
-                        }
-                    )
-            setattr(self.observations.policy, name, obsterm)
-
-            # Events 
-            if not child_rigid.GetKinematicEnabledAttr().Get():
-
-                bbox = bbox_cache.ComputeLocalBound(child)
-                bbox = bbox.ComputeAlignedBox()
-                bbox_max, bbox_min = bbox.GetMax(), bbox.GetMin()
-                pos = child.GetAttribute("xformOp:translate").Get()
-                longest_from_center = np.max([np.abs(bbox_max - pos), np.abs(bbox_min - pos)])
-
-                event = EventTerm(
-                        func = reset_root_state_uniform_absolute,
-                        params = {
-                            "asset_cfg": SceneEntityCfg(name),
-                            "dist_from_bounds": longest_from_center,
-                            "pose_range": {
-                                **pose_range,
-                                "yaw": (-np.pi, np.pi)
-                                },
-                            "velocity_range": {}
-                            },
-                        mode="reset"
-                        )
-                setattr(self.events, name, event)
-

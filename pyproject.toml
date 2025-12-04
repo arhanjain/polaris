@@ -17,7 +17,8 @@ dependencies = [
     "tyro>=0.9.17",
     "diff-surfel-rasterization",
     "simple-knn",
-
+    "openpi-client",
+ 
 ]
 
 [tool.uv]
@@ -34,6 +35,7 @@ torch = { index = "pytorch" }
 isaacsim = { index = "nvidia" }
 diff-surfel-rasterization = { path = "src/diff-surfel-rasterization", editable=true}
 simple-knn = { path = "src/simple-knn", editable=true}
+openpi-client = { path = "third_party/openpi/packages/openpi-client" }
 
 
 [[tool.uv.index]]
