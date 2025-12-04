@@ -54,7 +54,7 @@ class SceneCfg(InteractiveSceneCfg):
         width=1280,
         data_types=["rgb", "semantic_segmentation"],
         colorize_semantic_segmentation=False,
-        update_latest_camera_pose=True,
+        # update_latest_camera_pose=True,
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=2.8,
             focus_distance=28.0,
@@ -85,7 +85,7 @@ class SceneCfg(InteractiveSceneCfg):
             ],
         )
 
-    def dynamic_setup(self, environment_path, robot_splat=False, nightmare="", **kwargs):
+    def dynamic_setup(self, environment_path, robot_splat=True, nightmare="", **kwargs):
         environment_path_ = Path(environment_path)
         environment_path = str(environment_path_.resolve())
 
