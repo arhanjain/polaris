@@ -34,7 +34,13 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
     def _evaluate_rubric(self) -> dict:
         """Evaluate rubric and return results for info dict."""
         if self.rubric is None:
-            return {}
+            return {
+                "rubric": {
+                    "success": False,
+                    "progress": -1.0,
+                    "metrics": {},
+                }
+            }
         
         result = self.rubric.evaluate(self)
         return {

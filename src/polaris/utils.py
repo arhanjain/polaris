@@ -9,7 +9,7 @@ from isaaclab_tasks.utils import load_cfg_from_registry
 
 DATA_PATH = Path("./PolaRiS-environments").resolve() if "POLARIS_DATA_PATH" not in os.environ else Path(os.environ["POLARIS_DATA_PATH"]).resolve()
 
-def load_eval_initial_conditions(initial_conditions_file: str | None, usd: str) -> tuple[str, dict]:
+def load_eval_initial_conditions(usd:str, initial_conditions_file: str | None=None, rollouts: int | None = None) -> tuple[str, dict]:
     '''
     If initial_conditions_file is provided, load the initial conditions from the file.
     Otherwise, load the initial conditions from the USD file. If neither exist, raise an error.
@@ -29,7 +29,7 @@ def load_eval_initial_conditions(initial_conditions_file: str | None, usd: str) 
     if "instruction" not in initial_conditions or "poses" not in initial_conditions:
         raise ValueError("Initial conditions ill formated. Must contain 'instruction' and 'poses' keys.")
     instruction = initial_conditions["instruction"]
-    initial_conditions = initial_conditions["poses"]
+    initial_conditions = initial_conditions["poses"] if rollouts is None else initial_conditions["poses"][:rollouts]
     return instruction, initial_conditions
 
 def run_folder_path(run_folder: str | None, usd: str, policy: str) -> Path:

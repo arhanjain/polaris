@@ -49,7 +49,8 @@ class EvalArgs:
     initial_conditions_file: str | None = None      # Path to initial conditions file
     instruction: str | None = None                  # Override language instruction
     run_folder: str | None = None                   # Path to run folder
-    usd: str | None = None                     # Path to the USD file
+    rollouts: int | None = None                     # Number of rollouts to evaluate
+    # usd: str | None = None                          # Path to the USD file
 
 @dataclass
 class JobCfg:

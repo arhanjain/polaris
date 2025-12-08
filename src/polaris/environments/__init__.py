@@ -85,52 +85,36 @@ gym.register(
     },
 )
 
-# # =============================================================================
-# # Rubric Registration
-# # Define which rubric to use for each task (identified by USD stem name)
-# # =============================================================================
 
-# # Block stacking tasks
-# register_rubric(
-#     "g60_kitchen_table_zed",  # block_stack_kitchen
-#     StackingRubric,
-#     stack_order=["blue_block", "red_block"],  # blue on bottom, red on top
-#     xy_tolerance=0.04,
-# )
+gym.register(
+    id='DROID-MoveLatteCup',
+    entry_point=MangerBasedRLSplatEnv,
+    disable_env_checker=True,
+    order_enforce=False,
+    kwargs={
+        "env_cfg_entry_point": DroidCfg,
+        "usd_file": str(DATA_PATH / "move_latte_cup/princeton_env_1.usd"),
+    },
+)
 
-# register_rubric(
-#     "vention",  # block_stack
-#     StackingRubric,
-#     stack_order=["green_block", "blue_block"],
-#     xy_tolerance=0.04,
-# )
+gym.register(
+    id='DROID-OrganizeTools',
+    entry_point=MangerBasedRLSplatEnv,
+    disable_env_checker=True,
+    order_enforce=False,
+    kwargs={
+        "env_cfg_entry_point": DroidCfg,
+        "usd_file": str(DATA_PATH / "organize_tools/princeton_env_2.usd"),
+    },
+)
 
-# # Food bussing - move food items to target zone (e.g., plate/bin)
-# register_rubric(
-#     "g60_corner",  # food_bussing
-#     ObjectInZoneRubric,
-#     targets=[
-#         {"object": "banana", "zone_center": (0.3, 0.0, 0.1), "zone_radius": 0.1},
-#         {"object": "apple", "zone_center": (0.3, 0.0, 0.1), "zone_radius": 0.1},
-#     ],
-# )
-
-# # Pan cleaning - move pan to target location
-# register_rubric(
-#     "g60_stovetop_zed",  # pan_clean
-#     ObjectInZoneRubric,
-#     targets=[
-#         {"object": "stainlesspan", "zone_center": (0.4, -0.2, 0.05), "zone_radius": 0.15},
-#     ],
-# )
-
-# # Bowl stacking
-# register_rubric(
-#     "envs_00",  # stack_bowls
-#     StackingRubric,
-#     stack_order=["pink_bowl", "yellow_bowl", "blue_bowl"],
-#     xy_tolerance=0.06,
-# )
-
-# # Add more rubrics as needed...
-# # register_rubric("task_usd_stem", RubricClass, **config)
+gym.register(
+    id='DROID-TapeIntoContainer',
+    entry_point=MangerBasedRLSplatEnv,
+    disable_env_checker=True,
+    order_enforce=False,
+    kwargs={
+        "env_cfg_entry_point": DroidCfg,
+        "usd_file": str(DATA_PATH / "tape_into_container/lab_bench.usd"),
+    },
+)

@@ -23,17 +23,12 @@ from polaris.config import EvalArgs
 
 def main(eval_args: EvalArgs):
     # This must be done before importing anything from IsaacLab 
-    # Inside main function for compatibility with HPC cluster python launch scripts
+    # Inside main function to avoid launching IsaacLab in global scope
     # >>>> Isaac Sim App Launcher <<<<
     parser = argparse.ArgumentParser()
     args_cli, _ = parser.parse_known_args()
-    # AppLauncher.add_app_launcher_args(parser)
-
-    # args_cli, other_args = parser.parse_known_args()
-    # sys.argv = [sys.argv[0]] + other_args  # clear out sys.argv for hydra
     args_cli.enable_cameras = True
     args_cli.headless = eval_args.headless
-
     app_launcher = AppLauncher(args_cli)
     simulation_app = app_launcher.app
     # >>>> Isaac Sim App Launcher <<<<
@@ -47,14 +42,17 @@ def main(eval_args: EvalArgs):
 
     env_cfg = parse_env_cfg(
         eval_args.environment,
-        # usd_file=eval_args.usd,
         device="cuda",
         num_envs=1,
         use_fabric=True,
     )
     env: MangerBasedRLSplatEnv = gym.make(eval_args.environment, cfg=env_cfg)   # type: ignore
 
-    language_instruction, initial_conditions = load_eval_initial_conditions(eval_args.initial_conditions_file, env.usd_file)
+    language_instruction, initial_conditions = load_eval_initial_conditions(
+        usd=env.usd_file,
+        initial_conditions_file=eval_args.initial_conditions_file,
+        rollouts=eval_args.rollouts,
+    )
     rollouts = len(initial_conditions)
     run_folder = run_folder_path(eval_args.run_folder, eval_args.environment, eval_args.policy.name)
     # Resume CSV logging

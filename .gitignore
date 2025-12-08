@@ -2,6 +2,7 @@
 data/
 runs/
 PolaRiS-environments/
+PolaRiS-datasets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
