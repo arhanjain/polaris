@@ -79,6 +79,7 @@ print(f"Episode Finished. Success: {info['rubric']['success']}, Progress: {info[
 *Note: First run may take longer due to JIT compilation of the splat rasterization kernels. Ensure you have NVIDIA Drivers and CUDA Toolkit (nvcc) properly configured.*
 ```bash
 # Install evaluation environments (<2GB) and start evaluation process
+sudo apt install ffmpeg # for saving videos
 uvx hf download owhan/PolaRiS-environments --repo-type=dataset --local-dir ./PolaRiS-environments
 uv run scripts/eval.py --environment DROID-FoodBussing --policy.name pi05 --policy.client DroidJointPos --policy.port 8000 --policy.open-loop-horizon 8
 
