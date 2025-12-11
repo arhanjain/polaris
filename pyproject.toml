@@ -16,7 +16,7 @@ dependencies = [
     "diff-surfel-rasterization",
     "simple-knn",
     "openpi-client",
- 
+    "torch>=2.9.0",
 ]
 
 [tool.uv]
@@ -29,6 +29,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
+torch = { index = "torch" }
 isaacsim = { index = "nvidia" }
 diff-surfel-rasterization = { path = "src/diff-surfel-rasterization", editable=true}
 simple-knn = { path = "src/simple-knn", editable=true}
@@ -38,6 +39,11 @@ openpi-client = { path = "third_party/openpi/packages/openpi-client" }
 [[tool.uv.index]]
 name = "nvidia"
 url = "https://pypi.nvidia.com/"
+explicit = true
+
+[[tool.uv.index]]
+name = "torch"
+url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 
