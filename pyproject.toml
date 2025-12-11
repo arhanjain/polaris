@@ -17,12 +17,14 @@ dependencies = [
     "simple-knn",
     "openpi-client",
     "torch>=2.9.0",
+    "torchvision>=0.24.0",
 ]
 
 [tool.uv]
 override-dependencies = [
     "pywin32==306; sys_platform == 'win32'",
     "torch>=2.9.0",
+    "torchvision>=0.24.0",
 ]
 
 [build-system]
@@ -31,6 +33,7 @@ build-backend = "hatchling.build"
 
 [tool.uv.sources]
 torch = { index = "torch" }
+torchvision = { index = "torch" }
 isaacsim = { index = "nvidia" }
 diff-surfel-rasterization = { path = "src/diff-surfel-rasterization", editable=true}
 simple-knn = { path = "src/simple-knn", editable=true}
