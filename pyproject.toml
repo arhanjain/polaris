@@ -22,6 +22,7 @@ dependencies = [
 [tool.uv]
 override-dependencies = [
     "pywin32==306; sys_platform == 'win32'",
+    "torch>=2.9.0",
 ]
 
 [build-system]
