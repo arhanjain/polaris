@@ -28,7 +28,7 @@ gym.register(
     entry_point=MangerBasedRLSplatEnv,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "block_stack_kitchen/g60_kitchen_table_zed.usd"),
+        "usd_file": str(DATA_PATH / "block_stack_kitchen/scene.usda"),
         "rubric": Rubric (
             criteria=[
                 checkers.reach("green_cube", threshold=0.2),
@@ -53,7 +53,7 @@ gym.register(
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "food_bussing/g60_corner.usd"),
+        "usd_file": str(DATA_PATH / "food_bussing/scene.usda"),
         "rubric": Rubric (
             criteria=[
                 checkers.reach("ice_cream_", threshold=0.2),
@@ -74,7 +74,7 @@ gym.register(
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "pan_clean/g60_stovetop_zed.usd"),
+        "usd_file": str(DATA_PATH / "pan_clean/scene.usda"),
         "rubric": Rubric (
             criteria=[
                 checkers.reach("sponge", threshold=0.2),
@@ -93,7 +93,7 @@ gym.register(
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "move_latte_cup/princeton_env_1.usd"),
+        "usd_file": str(DATA_PATH / "move_latte_cup/scene.usda"),
     },
 )
 
@@ -104,7 +104,7 @@ gym.register(
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "organize_tools/princeton_env_2.usd"),
+        "usd_file": str(DATA_PATH / "organize_tools/scene.usda"),
     },
 )
 
@@ -115,6 +115,17 @@ gym.register(
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
-        "usd_file": str(DATA_PATH / "tape_into_container/lab_bench.usd"),
+        "usd_file": str(DATA_PATH / "tape_into_container/scene.usda"),
+    },
+)
+
+gym.register(
+    id='DROID-Test',
+    entry_point=MangerBasedRLSplatEnv,
+    disable_env_checker=True,
+    order_enforce=False,
+    kwargs={
+        "env_cfg_entry_point": DroidCfg,
+        "usd_file": str(DATA_PATH / "test/scene.usda"),
     },
 )

@@ -80,6 +80,11 @@ class SceneCfg(InteractiveSceneCfg):
         ),
     )
 
+    sphere_light = AssetBaseCfg(
+        prim_path="/World/biglight",
+        spawn=sim_utils.DomeLightCfg(intensity=1000),
+    )
+
     def __post_init__(self,):
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
@@ -103,12 +108,6 @@ class SceneCfg(InteractiveSceneCfg):
         environment_path_ = Path(environment_path)
         environment_path = str(environment_path_.resolve())
 
-        self.sphere_light = AssetBaseCfg(
-            prim_path="/World/biglight",
-            spawn=sim_utils.SphereLightCfg(intensity=3000) if nightmare else sim_utils.DomeLightCfg(intensity=1000),
-
-            init_state=AssetBaseCfg.InitialStateCfg(pos=(0.3, -0.8, 0.7)),
-        )
         scene = AssetBaseCfg(
                 prim_path="{ENV_REGEX_NS}/scene",
                 spawn = sim_utils.UsdFileCfg(
@@ -128,42 +127,10 @@ class SceneCfg(InteractiveSceneCfg):
         for child in children:
             name = child.GetName()
             print(name)
-            asset = None
-            # Check if the child is a rigid body
-            if UsdPhysics.RigidBodyAPI(child):
-                pos = child.GetAttribute("xformOp:translate").Get()
-                rot = child.GetAttribute("xformOp:orient").Get()
-                rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
-                asset = RigidObjectCfg(
-                    prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
-                    spawn=None,
-                    init_state=RigidObjectCfg.InitialStateCfg(
-                        pos=pos,
-                        rot=rot,
-                    ),
-                )
-            else:
-                # Also check one layer lower: children of this child
-                for subchild in child.GetChildren():
-                    subname = subchild.GetName()
-                    if UsdPhysics.RigidBodyAPI(subchild):
-                        pos = subchild.GetAttribute("xformOp:translate").Get()
-                        rot = subchild.GetAttribute("xformOp:orient").Get()
-                        rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
-                        asset = RigidObjectCfg(
-                            prim_path=f"{{ENV_REGEX_NS}}/scene/{name}/{subname}",
-                            spawn=None,
-                            init_state=RigidObjectCfg.InitialStateCfg(
-                                pos=pos,
-                                rot=rot,
-                            ),
-                        )
-                        # Optionally, set the asset as an attribute with its subname
-                        setattr(self, subname, asset)
-            if asset:
-                setattr(self, name, asset)
 
-            elif child.IsA(UsdGeom.Camera):
+
+            # if its a camera, use the camera pose
+            if child.IsA(UsdGeom.Camera):
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
                 rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
@@ -176,14 +143,24 @@ class SceneCfg(InteractiveSceneCfg):
                     spawn=None,
                     offset=CameraCfg.OffsetCfg(
                         pos = pos, rot = rot, convention="opengl"
-
                     ),
                 )
-
-            if asset:
+                setattr(self, name, asset)
+            else:
+                # All Xforms specified in scene.usda should be RigidBody
+                pos = child.GetAttribute("xformOp:translate").Get()
+                rot = child.GetAttribute("xformOp:orient").Get()
+                rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
+                asset = RigidObjectCfg(
+                    prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
+                    spawn=None,
+                    init_state=RigidObjectCfg.InitialStateCfg(
+                        pos=pos,
+                        rot=rot,
+                    ),
+                )
                 setattr(self, name, asset)
 
-        # if external cam not in scene definition, we'll set a default one
         if not hasattr(self, "external_cam"):
             self.external_cam = CameraCfg(
                     prim_path=f"{{ENV_REGEX_NS}}/scene/external_cam",
