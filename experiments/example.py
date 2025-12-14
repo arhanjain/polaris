@@ -22,7 +22,7 @@ PI0_FAST_SERVER = PolicyServer(
         "~/projects/PolaRiS/third_party/openpi/scripts/serve_policy.py",
         "--port {port}",
         "policy:checkpoint --policy.config pi0_fast_droid_jointpos",
-        "--policy.dir gs://openpi-assets-simeval/pi0_fast_droid_jointpos",
+        "--policy.dir gs://openpi-assets/checkpoints/polaris/pi0_fast_droid_jointpos_polaris",
     ]),
     ready_message="server listening on",
 )
@@ -35,7 +35,7 @@ PI05_SERVER = PolicyServer(
         "~/projects/PolaRiS/third_party/openpi/scripts/serve_policy.py",
         "--port {port}",
         "policy:checkpoint --policy.config pi05_droid_jointpos",
-        "--policy.dir gs://openpi-assets-simeval/pi05_droid_jointpos",
+        "--policy.dir gs://openpi-assets/checkpoints/polaris/pi05_droid_jointpos_polaris",
     ]),
     ready_message="server listening on",
 )
@@ -43,74 +43,52 @@ PI05_SERVER = PolicyServer(
 # Each job references its server. The server will be launched on the same GPU as the job.
 config = BatchConfig(
     jobs=[
-    #     # pi0 jobs
-    #     JobCfg(
-    #         server=PI0_FAST_SERVER,
-    #         eval_args=EvalArgs(
-    #             environment="DROID-BlockStackKitchen",
-    #             policy=PolicyArgs(
-    #                 name="pi0_fast_droid_jointpos",
-    #                 client="DroidJointPos",
-    #                 open_loop_horizon=8,
-    #             ),
-    #         ),
-    #     ),
-    #     JobCfg(
-    #         server=PI0_FAST_SERVER,
-    #         eval_args=EvalArgs(
-    #             environment="DROID-FoodBussing",
-    #             policy=PolicyArgs(
-    #                 name="pi0_fast_droid_jointpos",
-    #                 client="DroidJointPos",
-    #                 open_loop_horizon=8,
-    #             ),
-    #         ),
-    #     ),
-    #     JobCfg(
-    #         server=PI0_FAST_SERVER,
-    #         eval_args=EvalArgs(
-    #             environment="DROID-PanClean",
-    #             policy=PolicyArgs(
-    #                 name="pi0_fast_droid_jointpos",
-    #                 client="DroidJointPos",
-    #                 open_loop_horizon=8,
-    #             ),
-    #         )
-    #     ),
+        # pi0 jobs
+        JobCfg(
+            server=PI05_SERVER,
+            eval_args=EvalArgs(
+                environment="DROID-MoveLatteCup",
+                policy=PolicyArgs(
+                    name="pi05_droid_jointpos_cotrained",
+                    client="DroidJointPos",
+                    open_loop_horizon=8,
+                ),
+            ),
+        ),
+        JobCfg(
+            server=PI05_SERVER,
+            eval_args=EvalArgs(
+                environment="DROID-OrganizeTools",
+                policy=PolicyArgs(
+                    name="pi05_droid_jointpos_cotrained",
+                    client="DroidJointPos",
+                    open_loop_horizon=8,
+                ),
+            ),
+        ),
+        JobCfg(
+            server=PI05_SERVER,
+            eval_args=EvalArgs(
+                environment="DROID-TapeIntoContainer",
+                policy=PolicyArgs(
+                    name="pi05_droid_jointpos_cotrained",
+                    client="DroidJointPos",
+                    open_loop_horizon=8,
+                ),
+            ),
+        ),
 
-        # pi05 jobs
-        JobCfg(
-            server=PI05_SERVER,
-            eval_args=EvalArgs(
-                environment="DROID-BlockStackKitchen",
-                policy=PolicyArgs(
-                    name="pi05_droid_jointpos",
-                    client="DroidJointPos",
-                    open_loop_horizon=8,
-                ),
-            ),
-        ),
         JobCfg(
             server=PI05_SERVER,
             eval_args=EvalArgs(
                 environment="DROID-FoodBussing",
                 policy=PolicyArgs(
-                    name="pi05_droid_jointpos",
+                    name="pi05_droid_jointpos_cotrained",
                     client="DroidJointPos",
                     open_loop_horizon=8,
                 ),
             ),
         ),
-        JobCfg(
-            server=PI05_SERVER,
-            eval_args=EvalArgs(
-                environment="DROID-FoodBussing",
-                policy=PolicyArgs(
-                    name="pi05_droid_jointpos",
-                    client="DroidJointPos",
-                    open_loop_horizon=8,
-                ),
-            )
-        ),
+
     ],
 )

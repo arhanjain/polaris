@@ -19,8 +19,11 @@ git submodule update --init --recursive
 
 ### Setup environment with uv
 If you don't have UV installed, see [installation instructions](https://docs.astral.sh/uv/getting-started/installation/)
+
+
+By default we support CUDA 13. If you have an older version of CUDA installed, please downgrade the torch and torchvision version and index to be compatible in the [pyproject.toml](pyproject.toml).
 ```bash
-uv sync
+uv sync 
 ```
 
 <!-- ### HuggingFace Datasets
@@ -33,8 +36,13 @@ uvx hf download owhan/PolaRis-datasets --repo-type=dataset --local-dir ./PolaRiS
 ``` -->
 
 ## Getting Started
+First, download the PolaRiS environments (<2GB)
+```bash
+uvx hf download owhan/PolaRiS-environments --repo-type=dataset --local-dir ./PolaRiS-environments
+```
+
 ### Minimal Code Example
-Initializing a PolaRiS environment and executing random actions
+Next let's test a simple random action policy in a PolaRiS environment.
 ```python
 import torch
 import argparse
@@ -78,37 +86,35 @@ print(f"Episode Finished. Success: {info['rubric']['success']}, Progress: {info[
 ### Run a π0.5 Policy in PolaRiS
 *Note: First run may take longer due to JIT compilation of the splat rasterization kernels. Ensure you have NVIDIA Drivers and CUDA Toolkit (nvcc) properly configured.*
 ```bash
-# Install evaluation environments (<2GB) and start evaluation process
-uvx hf download owhan/PolaRiS-environments --repo-type=dataset --local-dir ./PolaRiS-environments
-uv run scripts/eval.py --environment DROID-FoodBussing --policy.name pi05 --policy.client DroidJointPos --policy.port 8000 --policy.open-loop-horizon 8
-
-# In separate process, starting from the root of this repo. This will setup openpi and host a pi05 policy.
+# Starting from the root of this repo. This will setup openpi and host a pi05 policy.
 cd third_party/openpi
 GIT_LFS_SKIP_SMUDGE=1 uv sync
 GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.35 uv run scripts/serve_policy.py --port 8000 policy:checkpoint --policy.config pi05_droid_jointpos_fullfinetune --policy.dir gs://openpi-assets-simeval/pi05_droid_jointpos
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.35 uv run scripts/serve_policy.py --port 8000 policy:checkpoint --policy.config pi05_droid_jointpos_fullfinetune --policy.dir gs://openpi-assets/checkpoints/polaris/pi05_droid_jointpos_polaris
+
+# In a separate process, start evaluation process
+sudo apt install ffmpeg # for saving videos
+uv run scripts/eval.py --environment DROID-FoodBussing --policy.port 8000 --run-folder runs/test
 ```
-By default, if no run folder is specified, results will be stored in a run folder created under `runs/{YYYY-MM-DD}/{HH:MM:SS AM/PM}`
+Results include rollout videos, and a CSV summarizing success and normalized progress of each episode.
 
 For the full list of all checkpoints we provide for evaluation, see [checkpoints.md](docs/checkpoints.md)
 
-**TODO**: replace the policy path here to hosted sim finetuned checkpoints
+If you want to run larger scale evaluations across different policies and tasks, checkout the [scripts/batch_eval.py](scripts/batch_eval.py) tooling we provide, scribed in [docs/batch_evals.md](docs/batch_evals.md)
 
-
-### Batch Evaluation
+<!-- ### Batch Evaluation
 Running a full scale evaluation across multiple checkpoints and tasks can be easily configured with a single python file representing the entire experiment. You can optionally name your experiments via `--run-folder` flag. For example configs, see [experiments/example.py](experiments/example.py)
 ```bash
 uv run scripts/batch_eval.py --config experiments/example.py --run-folder runs/i-love-robots
-```
+``` -->
+
+## Evaluating Your Policies In PolaRiS
+See [docs/custom_policies.md](docs/custom_policies.md)
 
 ## Creating Custom Evaluation Environments (Time Estimate: XX)
-**TODO**
-
-## Adding Policies to Evaluate
-**TODO**
+See [docs/custom_environments.md](docs/custom_environments.md)
 
 ## Project Structure
-
 <!-- ```text
 PolaRiS/
 ├── scripts/
@@ -126,3 +132,7 @@ TODO
 - make sure the TORCH archirecutre list is correct (mineby default included way more than it needed)
 - have correct version of gxx (my versions was too new)
 - clear torch_extensions cache in between builds and env changes
+
+
+## Issues
+This codebase has been tested on CUDA 13 with NVIDIA 5090 GPU. Please raise an issue if you run into any issues.

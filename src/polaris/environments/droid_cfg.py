@@ -126,22 +126,42 @@ class SceneCfg(InteractiveSceneCfg):
         children = scene_prim.GetChildren()
 
         for child in children:
-            # if rigid body
             name = child.GetName()
             print(name)
             asset = None
+            # Check if the child is a rigid body
             if UsdPhysics.RigidBodyAPI(child):
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
                 rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
                 asset = RigidObjectCfg(
-                            prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
+                    prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
+                    spawn=None,
+                    init_state=RigidObjectCfg.InitialStateCfg(
+                        pos=pos,
+                        rot=rot,
+                    ),
+                )
+            else:
+                # Also check one layer lower: children of this child
+                for subchild in child.GetChildren():
+                    subname = subchild.GetName()
+                    if UsdPhysics.RigidBodyAPI(subchild):
+                        pos = subchild.GetAttribute("xformOp:translate").Get()
+                        rot = subchild.GetAttribute("xformOp:orient").Get()
+                        rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
+                        asset = RigidObjectCfg(
+                            prim_path=f"{{ENV_REGEX_NS}}/scene/{name}/{subname}",
                             spawn=None,
                             init_state=RigidObjectCfg.InitialStateCfg(
                                 pos=pos,
                                 rot=rot,
                             ),
                         )
+                        # Optionally, set the asset as an attribute with its subname
+                        setattr(self, subname, asset)
+            if asset:
+                setattr(self, name, asset)
 
             elif child.IsA(UsdGeom.Camera):
                 pos = child.GetAttribute("xformOp:translate").Get()
@@ -326,7 +346,7 @@ class EnvCfg(ManagerBasedRLEnvCfg):
     curriculum = CurriculumCfg()
 
     def __post_init__(self):
-        self.episode_length_s = 5
+        self.episode_length_s = 30
 
         self.viewer.eye = (4.5, 0.0, 6.0)
         self.viewer.lookat = (0.0, 0.0, 0.0)

@@ -54,8 +54,9 @@ def main(eval_args: EvalArgs):
         rollouts=eval_args.rollouts,
     )
     rollouts = len(initial_conditions)
-    run_folder = run_folder_path(eval_args.run_folder, eval_args.environment, eval_args.policy.name)
     # Resume CSV logging
+    run_folder = Path(eval_args.run_folder)
+    run_folder.mkdir(parents=True, exist_ok=True)
     csv_path = run_folder / "eval_results.csv"
     if csv_path.exists():
         episode_df = pd.read_csv(csv_path)
@@ -69,6 +70,8 @@ def main(eval_args: EvalArgs):
     episode = len(episode_df)
     if episode >= rollouts:
         print(f"All rollouts have been evaluated. Exiting.")
+        env.close()
+        simulation_app.close()
         return
 
     policy_client: InferenceClient = InferenceClient.get_client(eval_args.policy)
@@ -84,7 +87,6 @@ def main(eval_args: EvalArgs):
         if viz is not None:
             video.append(viz)
         obs, rew, term, trunc, info = env.step(torch.tensor(action).reshape(1, -1), expensive=policy_client.rerender)
-        # obs, rew, term, trunc, info = env.step(torch.tensor(action).reshape(1, -1), expensive=True)
 
         bar.update(1)
         if term[0] or trunc[0] or bar.n >= horizon:

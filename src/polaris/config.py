@@ -33,24 +33,23 @@ class PolicyServer:
 @dataclass
 class PolicyArgs:
     """Policy configuration."""
-    name: str                              # Policy name (pi05_droid_jointpos, pi0_fast_droid_jointpos, etc.)
-    client: str                            # Client name (DroidJointPos, Fake, etc.)
+    # name: str                              # Policy name (pi05_droid_jointpos, pi0_fast_droid_jointpos, etc.)
+    client: str = "DroidJointPos"          # Client name (DroidJointPos, Fake, etc.)
     host: str = "0.0.0.0"
     port: int = 8000
-    open_loop_horizon: int | None = None
+    open_loop_horizon: int | None = 8
 
 
 @dataclass
 class EvalArgs:
     """Evaluation configuration."""
     policy: PolicyArgs                              # Policy arguments
+    environment: str                                # Which IsaacLab environment to use
+    run_folder: str                                 # Path to run folder
     headless: bool = True                           # Whether to run in headless mode
-    environment: str = "DROID-RoboSplat"            # Which IsaacLab environment to use
     initial_conditions_file: str | None = None      # Path to initial conditions file
     instruction: str | None = None                  # Override language instruction
-    run_folder: str | None = None                   # Path to run folder
     rollouts: int | None = None                     # Number of rollouts to evaluate
-    # usd: str | None = None                          # Path to the USD file
 
 @dataclass
 class JobCfg:
