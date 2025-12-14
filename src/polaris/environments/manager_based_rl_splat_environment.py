@@ -11,16 +11,21 @@ from isaacsim.core.utils.stage import get_current_stage
 from pxr import Semantics
 
 from polaris.splat_renderer import SplatRenderer
-from polaris.environments.rubrics import Rubric, RubricResult
+from polaris.environments.rubrics import Rubric
 
 
 class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
-    
     rubric: Rubric | None = None
     _task_name: str | None = None
-    
-    def __init__(self, cfg: ManagerBasedRLEnvCfg, *args, rubric: Rubric | None = None, usd_file: str | None = None, **kwargs):        
 
+    def __init__(
+        self,
+        cfg: ManagerBasedRLEnvCfg,
+        *args,
+        rubric: Rubric | None = None,
+        usd_file: str | None = None,
+        **kwargs,
+    ):
         # do dynamic setup here maybe
         if usd_file is not None:
             self.usd_file = usd_file
@@ -41,7 +46,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
                     "metrics": {},
                 }
             }
-        
+
         result = self.rubric.evaluate(self)
         return {
             "rubric": {
@@ -52,7 +57,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         }
 
     def reset(self, object_positions: dict = {}, expensive=True, *args, **kwargs):
-        '''
+        """
         Reset the environment
 
         Parameters
@@ -61,7 +66,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             A dictionary mapping object names to their desired poses (position and orientation).
         expensive : bool
             Whether to perform expensive (splat) rendering operations.
-        '''
+        """
         obs, info = super().reset(*args, **kwargs)
 
         # Reset rubric state
@@ -75,7 +80,9 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             self.scene[obj].write_root_pose_to_sim(pose)
         self.sim.render()
         self.scene.update(0)
-        obs = self.observation_manager.compute()  # update observation after setting ICs if needed
+        obs = (
+            self.observation_manager.compute()
+        )  # update observation after setting ICs if needed
         obs["splat"] = self.custom_render(expensive, transform_static=True)
 
         # Evaluate rubric and add to info
@@ -84,7 +91,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         return obs, info
 
     def step(self, action, expensive=True):
-        '''
+        """
         Steps the environment
 
         Parameters
@@ -93,7 +100,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             The action to take in the environment.
         expensive : bool
             Whether to perform expensive (splat) rendering operations.
-        '''
+        """
         obs, rew, done, trunc, info = super().step(action)
         obs["splat"] = self.custom_render(expensive)
         # obs["splat"] = {cam: self.get_robot_from_sim()[cam]["rgb"] for cam in self.get_robot_from_sim()}
@@ -104,15 +111,17 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         return obs, rew, done, trunc, info
 
     def custom_render(self, expensive: bool, transform_static: bool = False):
-        '''
+        """
         Render the environment
-        '''
+        """
         if expensive:
             self.transform_sim_to_splat(transform_static=transform_static)
             rgb = self.render_splat()
             mask_and_rgb = self.get_robot_from_sim()
             for cam in mask_and_rgb:
-                og_img = rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
+                og_img = (
+                    rgb[cam] if cam in rgb else np.zeros_like(mask_and_rgb[cam]["rgb"])
+                )
                 mask = mask_and_rgb[cam]["mask"]
                 sim_img = mask_and_rgb[cam]["rgb"]
                 new_img = np.where(mask, sim_img, og_img)
@@ -121,9 +130,10 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             rgb = {}
             for cam in self.scene.sensors:
                 if isinstance(self.scene.sensors[cam], Camera):
-                    rgb[cam] = self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+                    rgb[cam] = (
+                        self.scene[cam].data.output["rgb"][0].detach().cpu().numpy()
+                    )
         return rgb
-
 
     def setup_splat_world_and_robot_views(self):
         splats = {}
@@ -153,13 +163,17 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             if not isinstance(self.scene.sensors[name], Camera):
                 continue
             resolution = self.scene.sensors[name].image_shape
-            h_aperture = self.scene[name]._sensor_prims[0].GetHorizontalApertureAttr().Get()
-            v_aperture = self.scene[name]._sensor_prims[0].GetVerticalApertureAttr().Get()
+            h_aperture = (
+                self.scene[name]._sensor_prims[0].GetHorizontalApertureAttr().Get()
+            )
+            v_aperture = (
+                self.scene[name]._sensor_prims[0].GetVerticalApertureAttr().Get()
+            )
             f = self.scene[name]._sensor_prims[0].GetFocalLengthAttr().Get()
-            fovx = 2 * np.arctan(h_aperture / (2 * f)) 
-            fovy = 2 * np.arctan(v_aperture / (2 * f)) 
+            fovx = 2 * np.arctan(h_aperture / (2 * f))
+            fovy = 2 * np.arctan(v_aperture / (2 * f))
             camera_cfg[name] = {
-                "res" : resolution,
+                "res": resolution,
                 "fovx": fovx,
                 "fovy": fovy,
             }
@@ -188,7 +202,9 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             if not isinstance(self.scene.sensors[cam], Camera):
                 continue
             base_cam = self.scene[cam]
-            mask = base_cam.data.output["semantic_segmentation"][0].detach().cpu().numpy()
+            mask = (
+                base_cam.data.output["semantic_segmentation"][0].detach().cpu().numpy()
+            )
             img = base_cam.data.output["rgb"][0].detach().cpu().numpy()
             mask = np.where(mask >= 2, 1, 0)
 
@@ -197,20 +213,22 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
         return ret
 
     def transform_sim_to_splat(self, transform_static=False):
-        '''
+        """
         Update splat renderer transforms from simulation
 
         Parameters
         ----------
         transform_static : bool
             Whether to also transform static objects (like environment).
-        '''
+        """
         all_transforms = {}
 
         # rigid bodies
         for name in self.scene.rigid_objects:
             path = Path(self.usd_file).parent / "assets" / name / "splat.ply"
-            if (not "static" in name or transform_static) and path.exists(): # splat exists 
+            if (
+                "static" not in name or transform_static
+            ) and path.exists():  # splat exists
                 pos = self.scene[name].data.root_state_w[0, :3]
                 quat = self.scene[name].data.root_state_w[0, 3:7]
                 all_transforms[name] = (pos, quat)
@@ -222,7 +240,7 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             pos, quat = pos.squeeze(), quat.squeeze()
             all_transforms[v_name] = (pos, quat)
 
-        if len(all_transforms) > 0: # only transform if there is something to transform
+        if len(all_transforms) > 0:  # only transform if there is something to transform
             self.splat_renderer.transform_many(all_transforms)
 
         # set all cameras so that static cameras are set
@@ -239,7 +257,6 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
                 self.splat_renderer.render(cam_extrinsics_dict)
 
     def render_splat(self):
-
         # get camera extrinsics
         cam_extrinsics_dict = {}
         for name in self.splat_renderer.cameras:
@@ -276,4 +293,3 @@ class MangerBasedRLSplatEnv(ManagerBasedRLEnv):
             rgb[k] = cv2.resize(rgb[k], (rgb[k].shape[1] * 2, rgb[k].shape[0] * 2))
 
         return rgb
-

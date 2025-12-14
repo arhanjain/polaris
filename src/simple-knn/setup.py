@@ -22,25 +22,20 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://gitlab.inria.fr/bkerbl/simple-knn",
-    
     # Find the simple_knn package
     packages=find_packages(),
-    
     # Include all source files (.cu, .cpp, .h) for JIT compilation
     package_data={
         "": ["*.cu", "*.cpp", "*.h", "*.cuh"],
     },
-    
     # Also include source files at repo root
     include_package_data=True,
-    
     # Dependencies
     python_requires=">=3.7",
     install_requires=[
         "torch>=1.13.0",
         "ninja",  # For faster JIT compilation
     ],
-    
     # Classifiers
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -54,7 +49,7 @@ setup(
 # ==============================================================================
 # NOTES:
 # ==============================================================================
-# 
+#
 # This setup.py does NOT use CUDAExtension to pre-compile the extension.
 # Instead, it ships source files which are JIT compiled on first import.
 #

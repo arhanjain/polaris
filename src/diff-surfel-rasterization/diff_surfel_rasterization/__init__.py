@@ -27,65 +27,67 @@ except ImportError:
     import os
     import warnings
     from pathlib import Path
-    
+
     def _load_extension_jit():
         """JIT compile the CUDA extension if pre-built version not available."""
         from torch.utils.cpp_extension import load
-        
+
         # Get source directory (parent of this __init__.py)
         # _src_path = Path(__file__).parent.parent
         _src_path = Path(__file__).parent / "csrc"
-        
+
         # Find all source files
         sources = []
         for pattern in ["ext.cpp", "cuda_rasterizer/*.cu", "*.cu"]:
             sources.extend([str(p) for p in _src_path.glob(pattern)])
-        
+
         if not sources:
             raise FileNotFoundError(
                 f"No source files found in {_src_path}. "
                 "Make sure diff-surfel-rasterization is properly installed."
             )
-        
+
         # Compilation settings
         extra_cuda_cflags = [
             "-O3",
-            "--use_fast_math", 
+            "--use_fast_math",
             "-std=c++17",
             "--expt-relaxed-constexpr",
             "-U__CUDA_NO_HALF_OPERATORS__",
             "-U__CUDA_NO_HALF_CONVERSIONS__",
             "-U__CUDA_NO_HALF2_OPERATORS__",
         ]
-        
+
         extra_cflags = ["-O3", "-std=c++17"]
-        
+
         # Include directories
         include_dirs = [
             str(_src_path),
             str(_src_path / "cuda_rasterizer"),
-            str(_src_path.parent.parent / "third_party" / "glm" ),
+            str(_src_path.parent.parent / "third_party" / "glm"),
         ]
-        
-       # Build directory
-        cuda_ver = torch.version.cuda.replace(".", "_") if torch.cuda.is_available() else "cpu"
+
+        # Build directory
+        cuda_ver = (
+            torch.version.cuda.replace(".", "_") if torch.cuda.is_available() else "cpu"
+        )
         build_dir = os.path.join(
             os.path.expanduser("~"),
-            ".cache", 
+            ".cache",
             "torch_extensions",
-            f"diff_surfel_rasterization_cu{cuda_ver}"
+            f"diff_surfel_rasterization_cu{cuda_ver}",
         )
 
         # Create build directory if it doesn't exist
         os.makedirs(build_dir, exist_ok=True)
 
-        is_first_build = not os.path.exists(os.path.join(build_dir, "build.ninja")) 
+        is_first_build = not os.path.exists(os.path.join(build_dir, "build.ninja"))
         if is_first_build:
             print("\n" + "=" * 70)
             print("Compiling diff-surfel-rasterization (first time only)...")
             print("This will take 2-5 minutes.")
             print("=" * 70 + "\n")
-        
+
         try:
             extension = load(
                 name="diff_surfel_rasterization_cuda",
@@ -97,12 +99,12 @@ except ImportError:
                 verbose=is_first_build,
                 with_cuda=True,
             )
-            
+
             if is_first_build:
                 print("\n✓ Compilation successful! Cached for future use.\n")
-            
+
             return extension
-            
+
         except Exception as e:
             print("\n" + "=" * 70)
             print("ERROR: Failed to compile diff-surfel-rasterization")
@@ -114,19 +116,20 @@ except ImportError:
             print("  - PyTorch with CUDA support")
             print("=" * 70 + "\n")
             raise
-    
+
     # Load via JIT
     if not torch.cuda.is_available():
         raise RuntimeError(
             "CUDA not available. diff-surfel-rasterization requires CUDA.\n"
             f"PyTorch version: {torch.__version__}"
         )
-    
+
     _C = _load_extension_jit()
 
 # ==============================================================================
 # REST OF ORIGINAL CODE (unchanged)
 # ==============================================================================
+
 
 def cpu_deep_copy_tuple(input_tuple):
     copied_tensors = [

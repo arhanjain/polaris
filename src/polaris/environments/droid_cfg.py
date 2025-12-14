@@ -10,10 +10,10 @@ from typing import Sequence
 
 from polaris.environments.robot_cfg import NVIDIA_DROID
 
-from pxr import Usd, UsdPhysics, UsdGeom
+from pxr import Usd, UsdGeom
 from isaaclab.utils import configclass, noise
-from isaaclab.assets import AssetBaseCfg, RigidObjectCfg, RigidObject
-from isaaclab.managers import SceneEntityCfg 
+from isaaclab.assets import AssetBaseCfg, RigidObjectCfg
+from isaaclab.managers import SceneEntityCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import TerminationTermCfg as DoneTerm
@@ -26,12 +26,10 @@ from isaaclab.sensors.frame_transformer.frame_transformer_cfg import (
     OffsetCfg,
 )
 from isaaclab.markers.config import FRAME_MARKER_CFG
-from isaacsim.core.prims import RigidPrim
 
 
 # Patch to fix updating camera poses, since it's broken in IsaacLab 2.3
 class FixedCamera(Camera):
-
     def _update_poses(self, env_ids: Sequence[int]):
         """Computes the pose of the camera in the world frame with ROS convention.
 
@@ -47,20 +45,22 @@ class FixedCamera(Camera):
 
         # get the poses from the view
         env_ids = env_ids.to(torch.int32)
-        poses, quat = self._view.get_world_poses(env_ids, usd=False) 
+        poses, quat = self._view.get_world_poses(env_ids, usd=False)
         self._data.pos_w[env_ids] = poses
-        self._data.quat_w_world[env_ids] = math.convert_camera_frame_orientation_convention(
-            quat, origin="opengl", target="world"
+        self._data.quat_w_world[env_ids] = (
+            math.convert_camera_frame_orientation_convention(
+                quat, origin="opengl", target="world"
+            )
         )
+
 
 ### SceneCfg ###
 @configclass
 class SceneCfg(InteractiveSceneCfg):
     """Configuration for a cart-pole scene."""
 
+    robot = NVIDIA_DROID
 
-    robot = NVIDIA_DROID 
-    
     wrist_cam = CameraCfg(
         class_type=FixedCamera,
         prim_path="{ENV_REGEX_NS}/robot/Gripper/Robotiq_2F_85/base_link/wrist_cam",
@@ -76,7 +76,9 @@ class SceneCfg(InteractiveSceneCfg):
             vertical_aperture=3.024,
         ),
         offset=CameraCfg.OffsetCfg(
-            pos=(0.011, -0.031, -0.074), rot=(-0.420, 0.570, 0.576, -0.409), convention="opengl"
+            pos=(0.011, -0.031, -0.074),
+            rot=(-0.420, 0.570, 0.576, -0.409),
+            convention="opengl",
         ),
     )
 
@@ -85,7 +87,9 @@ class SceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(intensity=1000),
     )
 
-    def __post_init__(self,):
+    def __post_init__(
+        self,
+    ):
         marker_cfg = FRAME_MARKER_CFG.copy()
         marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
@@ -100,7 +104,7 @@ class SceneCfg(InteractiveSceneCfg):
                     offset=OffsetCfg(
                         pos=[0.0, 0.0, 0.0],
                     ),
-             ),
+                ),
             ],
         )
 
@@ -109,18 +113,16 @@ class SceneCfg(InteractiveSceneCfg):
         environment_path = str(environment_path_.resolve())
 
         scene = AssetBaseCfg(
-                prim_path="{ENV_REGEX_NS}/scene",
-                spawn = sim_utils.UsdFileCfg(
-                    usd_path=environment_path,
-                    activate_contact_sensors=False,
-                    ),
-                )
+            prim_path="{ENV_REGEX_NS}/scene",
+            spawn=sim_utils.UsdFileCfg(
+                usd_path=environment_path,
+                activate_contact_sensors=False,
+            ),
+        )
         self.scene = scene
         if not robot_splat:
             self.robot.spawn.semantic_tags = [("class", "raytraced")]
-        stage = Usd.Stage.Open(
-            environment_path
-        )
+        stage = Usd.Stage.Open(environment_path)
         scene_prim = stage.GetPrimAtPath("/World")
         children = scene_prim.GetChildren()
 
@@ -128,12 +130,16 @@ class SceneCfg(InteractiveSceneCfg):
             name = child.GetName()
             print(name)
 
-
             # if its a camera, use the camera pose
             if child.IsA(UsdGeom.Camera):
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
-                rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
+                rot = (
+                    rot.GetReal(),
+                    rot.GetImaginary()[0],
+                    rot.GetImaginary()[1],
+                    rot.GetImaginary()[2],
+                )
                 asset = CameraCfg(
                     prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
                     height=720,
@@ -141,16 +147,19 @@ class SceneCfg(InteractiveSceneCfg):
                     data_types=["rgb", "semantic_segmentation"],
                     colorize_semantic_segmentation=False,
                     spawn=None,
-                    offset=CameraCfg.OffsetCfg(
-                        pos = pos, rot = rot, convention="opengl"
-                    ),
+                    offset=CameraCfg.OffsetCfg(pos=pos, rot=rot, convention="opengl"),
                 )
                 setattr(self, name, asset)
             else:
                 # All Xforms specified in scene.usda should be RigidBody
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
-                rot = (rot.GetReal(), rot.GetImaginary()[0], rot.GetImaginary()[1], rot.GetImaginary()[2])
+                rot = (
+                    rot.GetReal(),
+                    rot.GetImaginary()[0],
+                    rot.GetImaginary()[1],
+                    rot.GetImaginary()[2],
+                )
                 asset = RigidObjectCfg(
                     prim_path=f"{{ENV_REGEX_NS}}/scene/{name}",
                     spawn=None,
@@ -163,20 +172,24 @@ class SceneCfg(InteractiveSceneCfg):
 
         if not hasattr(self, "external_cam"):
             self.external_cam = CameraCfg(
-                    prim_path=f"{{ENV_REGEX_NS}}/scene/external_cam",
-                    height=720,
-                    width=1280,
-                    data_types=["rgb", "semantic_segmentation"],
-                    colorize_semantic_segmentation=False,
-                    spawn=sim_utils.PinholeCameraCfg(
-                        focal_length=1.0476,
-                        horizontal_aperture=2.5452,
-                        vertical_aperture=1.4721,
-                    ),
-                    offset=CameraCfg.OffsetCfg(
-                        pos = (-0.01, -0.33, 0.48), rot = (0.76, 0.43, -0.24, -0.42), convention="opengl"
-                    ),
-                )
+                prim_path="{ENV_REGEX_NS}/scene/external_cam",
+                height=720,
+                width=1280,
+                data_types=["rgb", "semantic_segmentation"],
+                colorize_semantic_segmentation=False,
+                spawn=sim_utils.PinholeCameraCfg(
+                    focal_length=1.0476,
+                    horizontal_aperture=2.5452,
+                    vertical_aperture=1.4721,
+                ),
+                offset=CameraCfg.OffsetCfg(
+                    pos=(-0.01, -0.33, 0.48),
+                    rot=(0.76, 0.43, -0.24, -0.42),
+                    convention="opengl",
+                ),
+            )
+
+
 ### SceneCfg ###
 
 
@@ -204,6 +217,7 @@ class BinaryJointPositionZeroToOneAction(BinaryJointPositionAction):
                 max=self._clip[:, :, 1],
             )
 
+
 @configclass
 class BinaryJointPositionZeroToOneActionCfg(BinaryJointPositionActionCfg):
     """Configuration for the binary joint position action term.
@@ -226,10 +240,13 @@ class ActionCfg:
     finger_joint = BinaryJointPositionZeroToOneActionCfg(
         asset_name="robot",
         joint_names=["finger_joint"],
-        open_command_expr = {"finger_joint": 0.0},
+        open_command_expr={"finger_joint": 0.0},
         close_command_expr={"finger_joint": np.pi / 4},
     )
+
+
 ### ActionCfg ###
+
 
 ### ObsCfg ###
 def arm_joint_pos(
@@ -252,6 +269,7 @@ def arm_joint_pos(
     joint_pos = robot.data.joint_pos[:, joint_indices]
     return joint_pos
 
+
 def gripper_pos(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ):
@@ -266,6 +284,7 @@ def gripper_pos(
     joint_pos = joint_pos / (np.pi / 4)
 
     return joint_pos
+
 
 @configclass
 class ObservationCfg:
@@ -284,20 +303,26 @@ class ObservationCfg:
 
     policy: PolicyCfg = PolicyCfg()
 
+
 ### ObsCfg ###
+
 
 @configclass
 class EventCfg:
     """Configuration for events."""
+
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
 
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
+
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
+
 
 @configclass
 class TerminationsCfg:
@@ -305,9 +330,11 @@ class TerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
+
 @configclass
 class CurriculumCfg:
     """Curriculum configuration."""
+
 
 @configclass
 class EnvCfg(ManagerBasedRLEnvCfg):
@@ -336,5 +363,6 @@ class EnvCfg(ManagerBasedRLEnvCfg):
 
     def dynamic_setup(self, *args):
         self.scene.dynamic_setup(*args)
+
 
 #### END DROID ####

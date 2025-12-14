@@ -20,6 +20,9 @@ dependencies = [
     #"torchvision>=0.24.0", # Change here for different CUDA version
 ]
 
+[project.scripts]
+polaris = "polaris.cli:main"
+
 [tool.uv]
 override-dependencies = [
     "pywin32==306; sys_platform == 'win32'",
@@ -28,6 +31,11 @@ override-dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.9",
+]
 
 [tool.uv.sources]
 isaacsim = { index = "nvidia" }

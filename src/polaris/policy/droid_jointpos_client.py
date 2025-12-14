@@ -1,16 +1,12 @@
-import tyro
 import numpy as np
-from PIL import Image
-from dataclasses import dataclass
 from openpi_client import websocket_client_policy, image_tools
 from polaris.policy.abstract_client import InferenceClient, PolicyArgs
-
 
 
 # Joint Position Client for DROID
 @InferenceClient.register(client_name="DroidJointPos")
 class DroidJointPosClient(InferenceClient):
-    def __init__(self, args: PolicyArgs ) -> None:
+    def __init__(self, args: PolicyArgs) -> None:
         self.args = args
         if args.open_loop_horizon is None:
             raise ValueError("open_loop_horizon must be set for DroidJointPosClient")
@@ -24,7 +20,10 @@ class DroidJointPosClient(InferenceClient):
 
     @property
     def rerender(self) -> bool:
-        return self.actions_from_chunk_completed == 0 or self.actions_from_chunk_completed >= self.open_loop_horizon
+        return (
+            self.actions_from_chunk_completed == 0
+            or self.actions_from_chunk_completed >= self.open_loop_horizon
+        )
 
     def visualize(self, request: dict):
         """
@@ -40,7 +39,9 @@ class DroidJointPosClient(InferenceClient):
         self.actions_from_chunk_completed = 0
         self.pred_action_chunk = None
 
-    def infer(self, obs: dict, instruction: str, return_viz: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
+    def infer(
+        self, obs: dict, instruction: str, return_viz: bool = False
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         """
         Infer the next action from the policy in a server-client setup
         """
@@ -53,7 +54,9 @@ class DroidJointPosClient(InferenceClient):
             curr_obs = self._extract_observation(obs)
 
             self.actions_from_chunk_completed = 0
-            exterior_image = image_tools.resize_with_pad(curr_obs["right_image"], 224, 224)
+            exterior_image = image_tools.resize_with_pad(
+                curr_obs["right_image"], 224, 224
+            )
             wrist_image = image_tools.resize_with_pad(curr_obs["wrist_image"], 224, 224)
             request_data = {
                 "observation/exterior_image_1_left": exterior_image,
@@ -62,16 +65,19 @@ class DroidJointPosClient(InferenceClient):
                 "observation/gripper_position": curr_obs["gripper_position"],
                 "prompt": instruction,
             }
-            server_response= self.client.infer(request_data)
+            server_response = self.client.infer(request_data)
             self.pred_action_chunk = server_response["actions"]
             both = np.concatenate([exterior_image, wrist_image], axis=1)
 
         if return_viz and both is None:
             curr_obs = self._extract_observation(obs)
-            both = np.concatenate([
-                image_tools.resize_with_pad(curr_obs["right_image"], 224, 224),
-                image_tools.resize_with_pad(curr_obs["wrist_image"], 224, 224),
-            ], axis=1)
+            both = np.concatenate(
+                [
+                    image_tools.resize_with_pad(curr_obs["right_image"], 224, 224),
+                    image_tools.resize_with_pad(curr_obs["wrist_image"], 224, 224),
+                ],
+                axis=1,
+            )
 
         if self.pred_action_chunk is None:
             raise ValueError("No action chunk predicted")

@@ -1,42 +1,48 @@
 from pxr import Usd, UsdGeom
-from pxr import Gf, Usd, UsdGeom 
+from pxr import Gf
 from omni.usd import get_context
-from functools import partial
 import numpy as np
 import torch
+
 
 def reach(obj_name, threshold=0.05):
     """
     Returns a checker function that expects (env).
     Example: is_near("bowl", threshold=0.04)(env)
     """
+
     def checker(env):
         obj_pos = env.scene[obj_name].data.root_pos_w[0]
         ee_pos = env.scene["ee_frame"].data.target_pos_w[0]
         dist = torch.norm(obj_pos - ee_pos)
         return dist < threshold
+
     return checker
+
 
 def lift(obj_name, threshold=0.05, default_height=None):
     def checker(env):
         nonlocal default_height
         object_pos = env.scene[obj_name].data.root_pos_w[0]
         if default_height is None:
-            default_height = env.scene[obj_name].data.default_root_state[0,2]
+            default_height = env.scene[obj_name].data.default_root_state[0, 2]
 
         return (object_pos[2] - default_height).item() > threshold
+
     return checker
 
-def is_within_xy(object1, object2, percent_threshold=0.5, open_finger_threshold=0.1):
-    '''
-    Check if object1 is inside object2.
-    '''
 
+def is_within_xy(object1, object2, percent_threshold=0.5, open_finger_threshold=0.1):
+    """
+    Check if object1 is inside object2.
+    """
 
     def checker(env):
-        # ee should be open 
+        # ee should be open
         stage = get_context().get_stage()
-        finger_joint = env.scene["robot"].data.joint_pos[0][env.scene["robot"].data.joint_names.index("finger_joint")]
+        finger_joint = env.scene["robot"].data.joint_pos[0][
+            env.scene["robot"].data.joint_names.index("finger_joint")
+        ]
         if finger_joint >= open_finger_threshold:
             return False
 
@@ -49,12 +55,12 @@ def is_within_xy(object1, object2, percent_threshold=0.5, open_finger_threshold=
 
         obj1_corners, obj1_centroid = get_bbox(obj1_prim, pos=obj1_pos, quat=obj1_quat)
         obj2_corners, obj2_centroid = get_bbox(obj2_prim, pos=obj2_pos, quat=obj2_quat)
-        obj1_corners = np.array(obj1_corners) # [8, 3]
-        obj2_corners = np.array(obj2_corners) # [8, 3]
+        obj1_corners = np.array(obj1_corners)  # [8, 3]
+        obj2_corners = np.array(obj2_corners)  # [8, 3]
 
         # compute intersection of xy planes
-        obj1_xy_corners = obj1_corners[:, :2] # [8, 2]
-        obj2_xy_corners = obj2_corners[:, :2] # [8, 2]
+        obj1_xy_corners = obj1_corners[:, :2]  # [8, 2]
+        obj2_xy_corners = obj2_corners[:, :2]  # [8, 2]
         obj1_min_xy = np.min(obj1_xy_corners, axis=0)
         obj1_max_xy = np.max(obj1_xy_corners, axis=0)
         obj2_min_xy = np.min(obj2_xy_corners, axis=0)
@@ -71,7 +77,9 @@ def is_within_xy(object1, object2, percent_threshold=0.5, open_finger_threshold=
             return False
 
         # Areas
-        obj1_area = (obj1_max_xy[0] - obj1_min_xy[0]) * (obj1_max_xy[1] - obj1_min_xy[1])
+        obj1_area = (obj1_max_xy[0] - obj1_min_xy[0]) * (
+            obj1_max_xy[1] - obj1_min_xy[1]
+        )
         overlap_area = (overlap_max_x - overlap_min_x) * (overlap_max_y - overlap_min_y)
 
         # Percentage of object1 area that is inside object2
@@ -81,6 +89,7 @@ def is_within_xy(object1, object2, percent_threshold=0.5, open_finger_threshold=
         return overlap_ratio >= percent_threshold
 
     return checker
+
 
 def get_scale(prim: Usd.Prim) -> Gf.Vec3d:
     """
@@ -106,7 +115,7 @@ def get_scale(prim: Usd.Prim) -> Gf.Vec3d:
             # Convert to Gf.Vec3d if it's not already
             if isinstance(scale_value, (list, tuple)):
                 return Gf.Vec3d(*scale_value)
-            elif hasattr(scale_value, '__len__') and len(scale_value) == 3:
+            elif hasattr(scale_value, "__len__") and len(scale_value) == 3:
                 return Gf.Vec3d(scale_value[0], scale_value[1], scale_value[2])
             else:
                 return Gf.Vec3d(scale_value, scale_value, scale_value)
@@ -120,7 +129,9 @@ def get_bbox(body_prim: Usd.Prim, pos=None, quat=None, scalar_first=False):
     quat = quat.cpu().numpy().astype(np.float64)
     ## TODO: add options: zero_centered, current
     time_code = Usd.TimeCode.Default()
-    bbox_cache = UsdGeom.BBoxCache(time_code, includedPurposes=[UsdGeom.Tokens.default_])
+    bbox_cache = UsdGeom.BBoxCache(
+        time_code, includedPurposes=[UsdGeom.Tokens.default_]
+    )
     bbox_cache.Clear()
 
     prim_bbox = bbox_cache.ComputeLocalBound(body_prim)
@@ -130,7 +141,7 @@ def get_bbox(body_prim: Usd.Prim, pos=None, quat=None, scalar_first=False):
     matrix = prim_bbox.GetMatrix()
 
     corners = [matrix.Transform(range3d.GetCorner(i)) for i in range(8)]
-    centroid = prim_bbox.ComputeCentroid()      # GfVec3d [1][2]
+    centroid = prim_bbox.ComputeCentroid()  # GfVec3d [1][2]
 
     # Transform to origin using the inverse of the prim's world transform
     xform_cache = UsdGeom.XformCache(time_code)
@@ -147,9 +158,7 @@ def get_bbox(body_prim: Usd.Prim, pos=None, quat=None, scalar_first=False):
         for corner in transformed_corners:
             # Scale each corner directly
             scaled_corner = Gf.Vec3d(
-                corner[0] * scale[0],
-                corner[1] * scale[1],
-                corner[2] * scale[2]
+                corner[0] * scale[0], corner[1] * scale[1], corner[2] * scale[2]
             )
             scaled_corners.append(scaled_corner)
 
@@ -171,8 +180,9 @@ def get_bbox(body_prim: Usd.Prim, pos=None, quat=None, scalar_first=False):
         return transformed_corners, transformed_centroid
 
     # Apply additional transform
-    new_corners = [additional_transform.Transform(corner) for corner in transformed_corners]
+    new_corners = [
+        additional_transform.Transform(corner) for corner in transformed_corners
+    ]
     new_centroid = additional_transform.Transform(transformed_centroid)
-
 
     return new_corners, new_centroid

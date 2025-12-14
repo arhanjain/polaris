@@ -1,5 +1,7 @@
 import gymnasium as gym
-from polaris.environments.manager_based_rl_splat_environment import MangerBasedRLSplatEnv
+from polaris.environments.manager_based_rl_splat_environment import (
+    MangerBasedRLSplatEnv,
+)
 from polaris.environments.droid_cfg import EnvCfg as DroidCfg
 from isaaclab.envs import ManagerBasedRLEnv
 
@@ -14,7 +16,7 @@ import polaris.environments.rubrics.checkers as checkers
 # =============================================================================
 
 gym.register(
-    id='DROID-RoboSplat',
+    id="DROID-RoboSplat",
     entry_point=MangerBasedRLSplatEnv,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
@@ -24,12 +26,12 @@ gym.register(
 )
 
 gym.register(
-    id='DROID-BlockStackKitchen',
+    id="DROID-BlockStackKitchen",
     entry_point=MangerBasedRLSplatEnv,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
         "usd_file": str(DATA_PATH / "block_stack_kitchen/scene.usda"),
-        "rubric": Rubric (
+        "rubric": Rubric(
             criteria=[
                 checkers.reach("green_cube", threshold=0.2),
                 checkers.reach("wood_cube", threshold=0.2),
@@ -47,35 +49,38 @@ gym.register(
 
 
 gym.register(
-    id='DROID-FoodBussing',
+    id="DROID-FoodBussing",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
         "usd_file": str(DATA_PATH / "food_bussing/scene.usda"),
-        "rubric": Rubric (
+        "rubric": Rubric(
             criteria=[
                 checkers.reach("ice_cream_", threshold=0.2),
                 checkers.reach("grapes", threshold=0.2),
                 (checkers.lift("ice_cream_", threshold=0.06), [0]),
                 (checkers.lift("grapes", threshold=0.06), [1]),
-                (checkers.is_within_xy("ice_cream_", "bowl", percent_threshold=0.8), [2]),
+                (
+                    checkers.is_within_xy("ice_cream_", "bowl", percent_threshold=0.8),
+                    [2],
+                ),
                 (checkers.is_within_xy("grapes", "bowl", percent_threshold=0.8), [3]),
             ]
         ),
-    }
+    },
 )
 
 gym.register(
-    id='DROID-PanClean',
+    id="DROID-PanClean",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,
     kwargs={
         "env_cfg_entry_point": DroidCfg,
         "usd_file": str(DATA_PATH / "pan_clean/scene.usda"),
-        "rubric": Rubric (
+        "rubric": Rubric(
             criteria=[
                 checkers.reach("sponge", threshold=0.2),
                 (checkers.lift("sponge", threshold=0.09, default_height=0.0), [0]),
@@ -87,7 +92,7 @@ gym.register(
 
 
 gym.register(
-    id='DROID-MoveLatteCup',
+    id="DROID-MoveLatteCup",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,
@@ -98,7 +103,7 @@ gym.register(
 )
 
 gym.register(
-    id='DROID-OrganizeTools',
+    id="DROID-OrganizeTools",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,
@@ -109,7 +114,7 @@ gym.register(
 )
 
 gym.register(
-    id='DROID-TapeIntoContainer',
+    id="DROID-TapeIntoContainer",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,
@@ -120,7 +125,7 @@ gym.register(
 )
 
 gym.register(
-    id='DROID-Test',
+    id="DROID-Test",
     entry_point=MangerBasedRLSplatEnv,
     disable_env_checker=True,
     order_enforce=False,

@@ -11,13 +11,20 @@
 
 import torch
 import numpy as np
+
 # from ..utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
-from polaris.splat_renderer.utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
+from polaris.splat_renderer.utils.general_utils import (
+    inverse_sigmoid,
+    get_expon_lr_func,
+    build_rotation,
+)
 from polaris.splat_renderer.utils.sh_utils import RGB2SH
 from torch import nn
 import os
+
 # from ..utils.system_utils import mkdir_p
 from plyfile import PlyData, PlyElement
+
 # from simple_knn._C import distCUDA2
 from simple_knn import distCUDA2
 from ..utils.graphics_utils import BasicPointCloud
@@ -242,43 +249,6 @@ class GaussianModel:
         for i in range(self._rotation.shape[1]):
             l.append("rot_{}".format(i))
         return l
-
-    def save_ply(self, path):
-        mkdir_p(os.path.dirname(path))
-
-        xyz = self._xyz.detach().cpu().numpy()
-        normals = np.zeros_like(xyz)
-        f_dc = (
-            self._features_dc.detach()
-            .transpose(1, 2)
-            .flatten(start_dim=1)
-            .contiguous()
-            .cpu()
-            .numpy()
-        )
-        f_rest = (
-            self._features_rest.detach()
-            .transpose(1, 2)
-            .flatten(start_dim=1)
-            .contiguous()
-            .cpu()
-            .numpy()
-        )
-        opacities = self._opacity.detach().cpu().numpy()
-        scale = self._scaling.detach().cpu().numpy()
-        rotation = self._rotation.detach().cpu().numpy()
-
-        dtype_full = [
-            (attribute, "f4") for attribute in self.construct_list_of_attributes()
-        ]
-
-        elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate(
-            (xyz, normals, f_dc, f_rest, opacities, scale, rotation), axis=1
-        )
-        elements[:] = list(map(tuple, attributes))
-        el = PlyElement.describe(elements, "vertex")
-        PlyData([el]).write(path)
 
     def reset_opacity(self):
         opacities_new = self.inverse_opacity_activation(
