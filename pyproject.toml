@@ -20,6 +20,9 @@ dependencies = [
     "torchvision>=0.24.0",
 ]
 
+[project.scripts]
+polaris = "polaris.cli:main"
+
 [tool.uv]
 override-dependencies = [
     "pywin32==306; sys_platform == 'win32'",
