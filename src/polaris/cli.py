@@ -24,10 +24,11 @@ def main(argv: list[str] | None = None) -> None:
 
     if command == "upload":
         hf_upload.main(rest)
-    else:
-        print(f"Unknown command: {command}")
-        print("Supported commands: upload")
-        sys.exit(1)
+        return
+
+    print(f"Unknown command: {command}")
+    print("Supported commands: upload")
+    sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,10 @@ import sys
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
-from huggingface_hub import HfApi  # type: ignore
+import re
+
+from huggingface_hub import CommitOperationAdd, HfApi  # type: ignore
+from huggingface_hub.errors import HfHubHTTPError, RepositoryNotFoundError  # type: ignore
 
 ALLOWED_MESH_SUFFIXES = {".usdz", ".usd", ".glb", ".ply"}
 
@@ -111,7 +114,7 @@ def _validate_initial_conditions(ic_path: Path, asset_names: Iterable[str]) -> T
     return errors, warnings
 
 
-def _validate_usd_files(env_dir: Path) -> Tuple[List[str], List[str]]:
+def _validate_usd_files(env_dir: Path, require_pxr: bool = False) -> Tuple[List[str], List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
 
@@ -122,8 +125,10 @@ def _validate_usd_files(env_dir: Path) -> Tuple[List[str], List[str]]:
 
     try:
         from pxr import Usd  # type: ignore
-    except Exception:  # noqa: BLE001 - library is optional
-        # pxr is not installed; skip the deeper USD check but do not block validation.
+    except Exception as exc:  # noqa: BLE001 - library is optional
+        if require_pxr:
+            errors.append(f"pxr.Usd not available; cannot open USD files ({exc})")
+        # when not required, stay quiet to keep dry-runs clean
         return errors, warnings
 
     for usd_file in usd_files:
@@ -136,7 +141,7 @@ def _validate_usd_files(env_dir: Path) -> Tuple[List[str], List[str]]:
     return errors, warnings
 
 
-def validate_environment(env_dir: Path) -> Tuple[List[str], List[str]]:
+def validate_environment(env_dir: Path, require_pxr: bool = False) -> Tuple[List[str], List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
 
@@ -153,7 +158,7 @@ def validate_environment(env_dir: Path) -> Tuple[List[str], List[str]]:
     errors.extend(ic_errors)
     warnings.extend(ic_warnings)
 
-    usd_errors, usd_warnings = _validate_usd_files(env_dir)
+    usd_errors, usd_warnings = _validate_usd_files(env_dir, require_pxr=require_pxr)
     errors.extend(usd_errors)
     warnings.extend(usd_warnings)
 
@@ -165,18 +170,79 @@ def upload_environment(
     repo_id: str,
     token: str | None,
     branch: str,
+    pr_branch: str | None,
     commit_message: str | None,
+    pr_title: str | None,
+    pr_description: str | None,
 ) -> None:
     env_name = env_dir.name
     api = HfApi(token=token)
-    api.upload_folder(
-        folder_path=str(env_dir),
-        repo_id=repo_id,
-        repo_type="dataset",
-        path_in_repo=env_name,
-        revision=branch,
-        commit_message=commit_message or f"Add environment `{env_name}`",
-    )
+    commit_message = commit_message or f"Add environment `{env_name}`"
+    if pr_title:
+        commit_message = pr_title
+    if pr_description:
+        commit_message = f"{commit_message}\n\n{pr_description}"
+
+    operations = []
+    for file in env_dir.rglob("*"):
+        if not file.is_file():
+            continue
+        rel_path = file.relative_to(env_dir).as_posix()
+        path_in_repo = f"{env_name}/{rel_path}"
+        operations.append(
+            CommitOperationAdd(
+                path_in_repo=path_in_repo,
+                path_or_fileobj=str(file),
+            )
+        )
+    pr_title = pr_title or f"Add environment `{env_name}`"
+    pr_description = pr_description or ""
+    revision = pr_branch or branch
+    try:
+        commit_info = api.create_commit(  # type: ignore[arg-type]
+            repo_id=repo_id,
+            repo_type="dataset",
+            operations=operations,
+            revision=revision,
+            commit_message=commit_message,
+            create_pr=True,
+        )
+    except RepositoryNotFoundError as exc:
+        raise SystemExit(
+            f"Repository `{repo_id}` not found or unauthorized. "
+            "Ensure the dataset exists and your HF token has write access."
+        ) from exc
+    except HfHubHTTPError as exc:
+        raise SystemExit(
+            f"Hugging Face API error while creating PR: {exc}"
+        ) from exc
+    pr_url = getattr(commit_info, "pr_url", None)
+    pr_num = getattr(commit_info, "pr_num", None)
+    
+    # Try to extract PR number from URL if not directly available
+    if pr_url and not pr_num:
+        match = re.search(r"/(?:pull|pulls|discussions)/(\d+)", pr_url)
+        if match:
+            pr_num = match.group(1)
+    
+    if pr_url:
+        print(f"Pull request opened: {pr_url}")
+    elif pr_num:
+        pr_url = f"https://huggingface.co/datasets/{repo_id}/discussions/{pr_num}"
+        print(f"Pull request opened: {pr_url}")
+    else:
+        discussions_page = f"https://huggingface.co/datasets/{repo_id}/discussions"
+        print(f"Pull request created (URL not returned by API). Check: {discussions_page}")
+    
+    if pr_num:
+        repo_name = repo_id.split("/")[-1]
+        print("\nTo check out and update this PR locally:")
+        print(f"  git clone https://huggingface.co/datasets/{repo_id}")
+        print(f"  cd {repo_name} && git fetch origin refs/pr/{pr_num}:pr/{pr_num}")
+        print(f"  git checkout pr/{pr_num}")
+        print(f"  # make edits, then:")
+        print(f"  git push origin pr/{pr_num}:refs/pr/{pr_num}")
+    print(f"PR source revision: {revision} -> target: {branch}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -197,6 +263,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Target branch on the dataset repository",
     )
     parser.add_argument(
+        "--pr-branch",
+        default=None,
+        help="Optional source branch/ref for the PR (e.g., refs/pr/104); defaults to --branch",
+    )
+    parser.add_argument(
         "--token",
         default=None,
         help="Hugging Face token (defaults to HF_TOKEN env var if omitted)",
@@ -212,6 +283,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Treat validation warnings as errors",
     )
     parser.add_argument(
+        "--require-pxr",
+        action="store_true",
+        help="Fail validation if pxr (USD) is unavailable for stage open checks",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Only run validation; do not upload",
@@ -220,6 +296,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--commit-message",
         default=None,
         help="Optional commit message for the upload",
+    )
+    parser.add_argument(
+        "--pr-title",
+        default=None,
+        help="Pull request title",
+    )
+    parser.add_argument(
+        "--pr-description",
+        default=None,
+        help="Pull request description/body",
     )
     return parser
 
@@ -234,7 +320,7 @@ def main(argv: list[str] | None = None) -> None:
     env_dir: Path = args.env_dir.resolve()
 
     if not args.skip_validation:
-        errors, warnings = validate_environment(env_dir)
+        errors, warnings = validate_environment(env_dir, require_pxr=args.require_pxr)
         for warn in warnings:
             print(f"[WARN] {warn}")
         if errors:
@@ -256,9 +342,12 @@ def main(argv: list[str] | None = None) -> None:
         repo_id=args.repo_id,
         token=args.token,
         branch=args.branch,
+        pr_branch=args.pr_branch,
         commit_message=args.commit_message,
+        pr_title=args.pr_title,
+        pr_description=args.pr_description,
     )
-    print(f"Uploaded `{env_dir.name}` to {args.repo_id} (branch: {args.branch}).")
+    print(f"Prepared PR for `{env_dir.name}` to {args.repo_id} (target branch: {args.branch}).")
 
 
 if __name__ == "__main__":

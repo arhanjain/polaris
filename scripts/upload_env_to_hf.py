@@ -19,6 +19,12 @@ success inside Isaac Sim. Use this as a fast client-side gate before pushing.
 #
 #   Preferred CLI form (after `pip install -e .`):
 #   polaris upload ./PolaRiS-environments/food_bussing --dry-run
+#
+#   Create a pull request instead of direct commit:
+#   polaris upload ./PolaRiS-environments/food_bussing --pr-title "Add food bussing env"
+#
+#   Target a different HF dataset repo (example: owhan/PolaRiS-environments):
+#   ./.venv/bin/python -m polaris.cli upload ./PolaRiS-environments/block_stack_kitchen_v2/ --repo-id owhan/PolaRiS-environments --pr-title "Add block stack kitchen env"
 """
 
 from polaris.hf_upload import main  # type: ignore
