@@ -12,7 +12,10 @@
 import torch
 from torch import nn
 import numpy as np
-from polaris.splat_renderer.utils.graphics_utils import getWorld2View2, getProjectionMatrix
+from polaris.splat_renderer.utils.graphics_utils import (
+    getWorld2View2,
+    getProjectionMatrix,
+)
 
 
 class Camera(nn.Module):

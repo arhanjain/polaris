@@ -27,15 +27,13 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Tordjx/diff-surfel-rasterization",
-    
     # Find the diff_surfel_rasterization package
     packages=find_packages(),
-    
     # Include all source files (.cu, .cpp, .h) for JIT compilation
     package_data={
         "": [
             "*.cu",
-            "*.cpp", 
+            "*.cpp",
             "*.h",
             "*.cuh",
             "cuda_rasterizer/*.cu",
@@ -43,28 +41,30 @@ setup(
             "cuda_rasterizer/*.cuh",
         ],
     },
-    
     # Also include source files at repo root level
     # These will be accessible from Path(__file__).parent.parent in __init__.py
     data_files=[
-        (".", [
-            "ext.cpp",
-            # Add any root-level .cu files here
-        ]),
-        ("cuda_rasterizer", [
-            # List cuda_rasterizer files if they're at repo root
-        ]),
+        (
+            ".",
+            [
+                "ext.cpp",
+                # Add any root-level .cu files here
+            ],
+        ),
+        (
+            "cuda_rasterizer",
+            [
+                # List cuda_rasterizer files if they're at repo root
+            ],
+        ),
     ],
-    
     include_package_data=True,
-    
     # Dependencies
     python_requires=">=3.7",
     install_requires=[
         "torch>=1.13.0",
         "ninja",  # For faster JIT compilation
     ],
-    
     # Classifiers
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -83,7 +83,7 @@ setup(
 # ==============================================================================
 # NOTES:
 # ==============================================================================
-# 
+#
 # This setup.py does NOT use CUDAExtension to pre-compile the extension.
 # Instead, it ships source files which are JIT compiled on first import.
 #

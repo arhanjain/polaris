@@ -10,5 +10,5 @@ from .base import Rubric, RubricResult
 
 __all__ = [
     "Rubric",
-    "RubricResult", 
+    "RubricResult",
 ]

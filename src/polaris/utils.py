@@ -4,16 +4,23 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from isaaclab.envs import DirectRLEnvCfg, ManagerBasedRLEnvCfg
-from isaaclab_tasks.utils import load_cfg_from_registry 
+from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab_tasks.utils import load_cfg_from_registry
 
-DATA_PATH = Path("./PolaRiS-environments").resolve() if "POLARIS_DATA_PATH" not in os.environ else Path(os.environ["POLARIS_DATA_PATH"]).resolve()
+DATA_PATH = (
+    Path("./PolaRiS-environments").resolve()
+    if "POLARIS_DATA_PATH" not in os.environ
+    else Path(os.environ["POLARIS_DATA_PATH"]).resolve()
+)
 
-def load_eval_initial_conditions(usd:str, initial_conditions_file: str | None=None, rollouts: int | None = None) -> tuple[str, dict]:
-    '''
+
+def load_eval_initial_conditions(
+    usd: str, initial_conditions_file: str | None = None, rollouts: int | None = None
+) -> tuple[str, dict]:
+    """
     If initial_conditions_file is provided, load the initial conditions from the file.
     Otherwise, load the initial conditions from the USD file. If neither exist, raise an error.
-    '''
+    """
     if initial_conditions_file is None:
         initial_conditions_file_path = Path(usd).parent / "initial_conditions.json"
     else:
@@ -21,47 +28,52 @@ def load_eval_initial_conditions(usd:str, initial_conditions_file: str | None=No
 
     if not initial_conditions_file_path.exists():
         raise FileNotFoundError(
-            f"Either USD directory must have an initial_conditions.json file, or a custom initial_conditions_file must be provided.")
+            "Either USD directory must have an initial_conditions.json file, or a custom initial_conditions_file must be provided."
+        )
     with open(initial_conditions_file_path, "r") as f:
         initial_conditions = json.load(f)
 
     # will have initial conditions and language instruction
     if "instruction" not in initial_conditions or "poses" not in initial_conditions:
-        raise ValueError("Initial conditions ill formated. Must contain 'instruction' and 'poses' keys.")
+        raise ValueError(
+            "Initial conditions ill formated. Must contain 'instruction' and 'poses' keys."
+        )
     instruction = initial_conditions["instruction"]
-    initial_conditions = initial_conditions["poses"] if rollouts is None else initial_conditions["poses"][:rollouts]
+    initial_conditions = (
+        initial_conditions["poses"]
+        if rollouts is None
+        else initial_conditions["poses"][:rollouts]
+    )
     return instruction, initial_conditions
 
+
 def run_folder_path(run_folder: str | None, usd: str, policy: str) -> Path:
-    '''
+    """
     If run_folder is not provided, create a new run folder in the runs directory with the current date and time.
     Otherwise, use the provided run folder.
-    '''
+    """
     if not run_folder:
         run_folder_path = f"runs/{datetime.now().strftime('%Y-%m-%d')}/{datetime.now().strftime('%I:%M:%S %p')}"
     else:
         run_folder_path = run_folder
 
-    run_folder_path = (
-        Path(run_folder_path)
-        / Path(usd).stem
-        / policy
-    )
+    run_folder_path = Path(run_folder_path) / Path(usd).stem / policy
     print(f" >>> Saving to {run_folder_path} <<< ")
     run_folder_path.mkdir(parents=True, exist_ok=True)
     return run_folder_path
 
+
 def parse_env_cfg(
     task_name: str,
     usd_file: str,
-    device: str = "cuda:0", 
-    num_envs: int | None = None, 
-    use_fabric: bool | None = None
+    device: str = "cuda:0",
+    num_envs: int | None = None,
+    use_fabric: bool | None = None,
 ) -> ManagerBasedRLEnvCfg:
     """
-    Parse configuration for an environment and override based on inputs. 
+    Parse configuration for an environment and override based on inputs.
     Adapted from isaaclab_tasks.utils.parse_env_cfg.
-    
+
     New Parameters
     --------------
     usd_file: str
@@ -72,7 +84,9 @@ def parse_env_cfg(
 
     # check that it is not a dict
     if isinstance(cfg, dict):
-        raise RuntimeError(f"Configuration for the task: '{task_name}' is not a class. Please provide a class.")
+        raise RuntimeError(
+            f"Configuration for the task: '{task_name}' is not a class. Please provide a class."
+        )
 
     cfg.dynamic_setup(usd_file)
 
@@ -86,6 +100,7 @@ def parse_env_cfg(
         cfg.scene.num_envs = num_envs
 
     return cfg
+
 
 def rotate_vector_by_quaternion(q, v):
     """Rotate vectors by quaternions using the fast Hamilton product.
@@ -128,4 +143,3 @@ def multiply_quaternions(q1, q2):
     z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
 
     return torch.stack((w, x, y, z), dim=-1)
-

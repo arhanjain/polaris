@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Callable
-import torch
 import numpy as np
 
 from polaris.config import PolicyArgs
@@ -18,12 +17,15 @@ class InferenceClient(ABC):
         def decorator(cls: type):
             InferenceClient.REGISTERED_CLIENTS[client_name] = cls
             return cls
+
         return decorator
 
     @staticmethod
-    def get_client(policy_args: PolicyArgs) -> 'InferenceClient':
+    def get_client(policy_args: PolicyArgs) -> "InferenceClient":
         if policy_args.client not in InferenceClient.REGISTERED_CLIENTS:
-            raise ValueError(f"Client {policy_args.client} not found. Available clients: {list(InferenceClient.REGISTERED_CLIENTS.keys())}")
+            raise ValueError(
+                f"Client {policy_args.client} not found. Available clients: {list(InferenceClient.REGISTERED_CLIENTS.keys())}"
+            )
         return InferenceClient.REGISTERED_CLIENTS[policy_args.client](policy_args)
 
     @abstractmethod
@@ -42,7 +44,9 @@ class InferenceClient(ABC):
         return True
 
     @abstractmethod
-    def infer(self, obs, instruction, return_viz: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
+    def infer(
+        self, obs, instruction, return_viz: bool = False
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         """
         Does inference on observation and returns action and visualization. If visualization is not needed, return None.
         """
@@ -56,14 +60,18 @@ class InferenceClient(ABC):
         """
         pass
 
+
 class FakeClient(InferenceClient):
-    '''
+    """
     Fake client that returns a dummy action and visualization.
-    '''
+    """
+
     def __init__(self, *args, **kwargs) -> None:
         return
 
-    def infer(self, obs, instruction, return_viz: bool = False) -> tuple[np.ndarray, np.ndarray | None]:
+    def infer(
+        self, obs, instruction, return_viz: bool = False
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         import cv2
 
         external = obs["splat"]["external_cam"]
