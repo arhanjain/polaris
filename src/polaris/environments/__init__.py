@@ -14,16 +14,6 @@ import polaris.environments.rubrics.checkers as checkers
 # =============================================================================
 
 gym.register(
-    id='DROID-RoboSplat',
-    entry_point=MangerBasedRLSplatEnv,
-    kwargs={
-        "env_cfg_entry_point": DroidCfg,
-    },
-    disable_env_checker=True,
-    order_enforce=False,
-)
-
-gym.register(
     id='DROID-BlockStackKitchen',
     entry_point=MangerBasedRLSplatEnv,
     kwargs={

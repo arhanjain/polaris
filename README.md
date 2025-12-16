@@ -85,6 +85,8 @@ print(f"Episode Finished. Success: {info['rubric']['success']}, Progress: {info[
 
 ### Run a π0.5 Policy in PolaRiS
 *Note: First run may take longer due to JIT compilation of the splat rasterization kernels. Ensure you have NVIDIA Drivers and CUDA Toolkit (nvcc) properly configured.*
+
+Both the policy server and evaluation process should fit onto a single GPU (tested on RTX 3090, 24 GB). 
 ```bash
 # Starting from the root of this repo. This will setup openpi and host a pi05 policy.
 cd third_party/openpi
@@ -98,41 +100,16 @@ uv run scripts/eval.py --environment DROID-FoodBussing --policy.port 8000 --run-
 ```
 Results include rollout videos, and a CSV summarizing success and normalized progress of each episode.
 
-For the full list of all checkpoints we provide for evaluation, see [checkpoints.md](docs/checkpoints.md)
-
-If you want to run larger scale evaluations across different policies and tasks, checkout the [scripts/batch_eval.py](scripts/batch_eval.py) tooling we provide, scribed in [docs/batch_evals.md](docs/batch_evals.md)
-
-<!-- ### Batch Evaluation
-Running a full scale evaluation across multiple checkpoints and tasks can be easily configured with a single python file representing the entire experiment. You can optionally name your experiments via `--run-folder` flag. For example configs, see [experiments/example.py](experiments/example.py)
-```bash
-uv run scripts/batch_eval.py --config experiments/example.py --run-folder runs/i-love-robots
-``` -->
+For the full list of all checkpoints and environments we provide for evaluation, see [checkpoints_and_envs.md](docs/checkpoints_and_envs.md)
 
 ## Evaluating Your Policies In PolaRiS
 See [docs/custom_policies.md](docs/custom_policies.md)
 
-## Creating Custom Evaluation Environments (Time Estimate: XX)
-See [docs/custom_environments.md](docs/custom_environments.md)
+## Creating Custom Evaluation Environments 
+Time Estimate: 20 Minutes Human Time + 40 Minutes Offline Training
 
-## Project Structure
-<!-- ```text
-PolaRiS/
-├── scripts/
-│   └── eval.py
-├── PolaRiS-environments/
-├── PolaRiS-datasets/
-├── src/polaris/
-└── README.md
-``` -->
-
-
-TODO
-- If nvcc, cuda toolkit isnt installed, what to do
-- supports CUDA 12 only
-- make sure the TORCH archirecutre list is correct (mineby default included way more than it needed)
-- have correct version of gxx (my versions was too new)
-- clear torch_extensions cache in between builds and env changes
-
+Coming soon - 12/22
+<!-- See [docs/custom_environments.md](docs/custom_environments.md) -->
 
 ## Issues
 This codebase has been tested on CUDA 13 with NVIDIA 5090 GPU. Please raise an issue if you run into any issues.
