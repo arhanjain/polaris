@@ -16,8 +16,8 @@ dependencies = [
     "diff-surfel-rasterization",
     "simple-knn",
     "openpi-client",
-    "torch>=2.9.0", # Change here for different CUDA version
-    "torchvision>=0.24.0", # Change here for different CUDA version
+    #"torch>=2.9.0", # Change here for different CUDA version
+    #"torchvision>=0.24.0", # Change here for different CUDA version
 ]
 
 [project.scripts]
@@ -26,6 +26,8 @@ polaris = "polaris.cli:main"
 [tool.uv]
 override-dependencies = [
     "pywin32==306; sys_platform == 'win32'",
+    "torch>=2.9.0", # Change here for different CUDA version
+    "torchvision>=0.24.0", # Change here for different CUDA version
 ]
 
 [build-system]
