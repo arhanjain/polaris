@@ -112,4 +112,4 @@ Coming soon - 12/22
 <!-- See [docs/custom_environments.md](docs/custom_environments.md) -->
 
 ## Issues
-This codebase has been tested on CUDA 13 with NVIDIA 5090 GPU. Please raise an issue if you run into any issues.
+This codebase has been tested on CUDA 13 and CUDA 12 with NVIDIA 5090 and 3090 GPUs. Please raise an issue if you run into any issues.
