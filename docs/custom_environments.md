@@ -97,7 +97,7 @@ When you run `polaris upload`, the tool automatically:
 **Viewing Your PR:**
 
 - After upload, the CLI will print the PR URL (e.g., `https://huggingface.co/datasets/owhan/PolaRiS-Hub/discussions/<PR_NUMBER>`)
-- You can also view all PRs at: `https://huggingface.co/datasets/<repo-id>/discussions`
+- You can also view all PRs at: `https://huggingface.co/datasets/owhan/PolaRiS-Hub/discussions`
 - PRs must be reviewed and merged by dataset maintainers before your environment appears in the dataset
 
 **Merging Your PR:**

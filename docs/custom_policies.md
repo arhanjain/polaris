@@ -4,10 +4,10 @@ Pull the RLDS sim co-training dataset
 uvx hf download owhan/PolaRiS-datasets --repo-type=dataset --local-dir [path/to/rlds/datasets]
 ```
 
-To run cotraining on an off-the-shelf policy, use the PolaRiS training configs in [openpi](https://github.com/Physical-Intelligence/openpi). Example below.
+To run cotraining on an off-the-shelf policy, use the PolaRiS training configs in [openpi](https://github.com/Physical-Intelligence/openpi). Before running make sure to update the `rlds_data_dir` for each config. Example run below.
 ```bash
 cd third_party/openpi
-uv run scripts/train.py pi05_droid_jointpos_polaris --exp-name=polaris-pi05-droid --overwrite
+uv run --group rlds scripts/train.py  pi05_droid_jointpos_polaris --exp-name=polaris-pi05-droid --overwrite
 ```
 
 
