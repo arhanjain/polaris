@@ -38,7 +38,7 @@ PolaRiS-Hub/
     └── initial_conditions.json  (defined via GUI)
 ```
 
-Add the new environment to the [environments file](../src/polaris/environments/__init__.py), following the same pattern as the default 6 environments. You can also see how to define a rubric to score rollouts with just a few lines of code.
+Add the new environment to the [environments file](../src/polaris/environments/__init__.py), following the same pattern as the default 6 environments. You can also see how to define a rubric to score rollouts with just a few lines of code. Now you can use this environment by changing the `--environment` flag in the eval script.
 
 After testing the environment, please consider submitting a PR to upload it to the [PolaRiS-Hub](https://huggingface.co/datasets/owhan/PolaRiS-Hub)! See below for instructions.
 

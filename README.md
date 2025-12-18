@@ -1,3 +1,7 @@
+![PolaRiS](docs/images/Teaser Figure.png)
+
+---
+
 # PolaRiS
 
 PolaRiS is a evaluation framework for generalist policies. It provides tooling for reconstructing environments, evaluating models, and running experiments with minimal setup.
@@ -91,15 +95,63 @@ uv run scripts/eval.py --environment DROID-FoodBussing --policy.port 8000 --run-
 ```
 Results include rollout videos, and a CSV summarizing success and normalized progress of each episode.
 
-For the full list of all checkpoints and environments we provide for evaluation, see [checkpoints_and_envs.md](docs/checkpoints_and_envs.md)
+### Off-the-shelf Evaluation Environments
+| Environment Name | Prompt | Image |
+| :--- | :--- | :--- | 
+| DROID-BlockStackKitchen | Place and stack the blocks on top of the green tray | <img src="docs/images/stack.png" width="200"> |
+| DROID-FoodBussing | Put all the foods in the bowl | <img src="docs/images/foodbus.png" width="200"> |
+| DROID-PanClean | Use the yellow sponge to scrub the blue handle frying pan | <img src="docs/images/panclean.png" width="200"> |
+| DROID-MoveLatteCup | put the latte art cup on top of the cutting board | <img src="docs/images/latte-cup.png" width="200"> |
+| DROID-OrganizeTools | put the scissor into the large container | <img src="docs/images/organize-tools.png" width="200"> |
+| DROID-TapeIntoContainer | put the tape into the container | <img src="docs/images/tape-into-container.png" width="200"> |
+
+### PolaRiS-Ready Policies
+
+All checkpoints for PolaRiS were based on DROID base policies. Checkpoints were produced by cotraining at a weightage of 10% random simulated data and 90% DROID data for 1k steps.
+
+| Policy Name | Checkpoints Path |
+| :--- | :--- |
+| **π0.5 Polaris** | `gs://openpi-assets/checkpoints/polaris/pi05_droid_jointpos_polaris` |
+| **π0 Fast Polaris** | `gs://openpi-assets/checkpoints/polaris/pi0_fast_droid_jointpos_polaris` |
+| **π0 Polaris** | `gs://openpi-assets/checkpoints/polaris/pi0_droid_jointpos_polaris` |
+| **π0 Polaris (100k)** | `gs://openpi-assets/checkpoints/polaris/pi0_droid_jointpos_100k_polaris` |
+| **PaliGemma Polaris** | `gs://openpi-assets/checkpoints/polaris/paligemma_binning_droid_jointpos_polaris` 
+
+For the full list of all checkpoints, base policies, and environments we provide for evaluation, see [checkpoints_and_envs.md](docs/checkpoints_and_envs.md)
 
 ## Cotraining and Evaluating Your Policies In PolaRiS
-See [docs/custom_policies.md](docs/custom_policies.md)
+<ol>
+   <li>Download DROID simulated cotraining dataset</li>
+   <li>Cotrain a policy
+      <ol type="a">
+         <li>Using OpenPI
+            <ul>
+               <li>We provide cotraining configs for 4 policies in <a href="https://github.com/Physical-Intelligence/openpi/blob/main/src/openpi/training/misc/polaris_config.py">openpi</a></li>
+               </li>
+               <li>We already provide a client to inference openpi DROID policies in <a href="src/polaris/policy/droid_jointpos_client.py">src/polaris/policy/droid_jointpos_client.py</a></li>
+            </ul>
+         </li>
+         <li>Training a custom policy</li>
+         <ul>
+            <li>We recommend co-finetuning your policy with the provided sim dataset at 10% weightage</li>
+            <li>May need to define a custom policy client if your policy is not compatible with the provided DROID JointPosition client</li>
+         </ul>
+      </ol
+   </li>
+</ol>
+
+See <a href="docs/custom_policies.md">custom_policies.md</a> for more details
+
 
 ## Creating Custom Evaluation Environments 
 Time Estimate: 20 Minutes Human Time + 40 Minutes Offline Training
+1. Take a video
+2. Extract splat and mesh (we use 2DGS, but any method that produces both can work)
+3. Compose environment USD using our provided Web GUI
+4. Run evaluation :)
+5. Contribute to the community pool of evaluation environments!
 
-See [docs/custom_environments.md](docs/custom_environments.md)
+For detailed instructions, see [docs/custom_environments.md](docs/custom_environments.md)
 
 ## Issues
 This codebase has been tested on CUDA 13 and CUDA 12 with NVIDIA 5090 and 3090 GPUs. Please raise an issue if you run into any issues.
