@@ -155,3 +155,16 @@ For detailed instructions, see [docs/custom_environments.md](docs/custom_environ
 
 ## Issues
 This codebase has been tested on CUDA 13 and CUDA 12 with NVIDIA 5090 and 3090 GPUs. Please raise an issue if you run into any issues.
+
+## Citation
+If you find this repository useful, please consider citing it as:
+
+```bibtex
+@misc{polaris,
+  title   = {PolaRiS: Scalable Real-to-Sim Evaluations for Generalist Robot Policies},
+  author  = {
+    Jain, Arhan and Zhang, Mingtong and Arora, Kanav and Chen, William and Torne, Marcel and Irshad, Muhammad Zubair and Zakharov, Sergey and Wang, Yue and Levine, Sergey and Finn, Chelsea and Ma, Wei-Chiu and Shah, Dhruv and Gupta, Abhishek and Pertsch, Karl
+  },
+  year    = {2025}
+}
+```
