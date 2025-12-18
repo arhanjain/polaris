@@ -1,4 +1,4 @@
-![PolaRiS](docs/images/Teaser Figure.png)
+<img src="docs/images/Teaser Figure.png">
 
 ---
 
