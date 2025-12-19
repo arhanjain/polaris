@@ -163,11 +163,13 @@ This codebase has been tested on CUDA 13 and CUDA 12 with NVIDIA 5090 and 3090 G
 If you find this repository useful, please consider citing it as:
 
 ```bibtex
-@misc{polaris,
-  title   = {PolaRiS: Scalable Real-to-Sim Evaluations for Generalist Robot Policies},
-  author  = {
-    Jain, Arhan and Zhang, Mingtong and Arora, Kanav and Chen, William and Torne, Marcel and Irshad, Muhammad Zubair and Zakharov, Sergey and Wang, Yue and Levine, Sergey and Finn, Chelsea and Ma, Wei-Chiu and Shah, Dhruv and Gupta, Abhishek and Pertsch, Karl
-  },
-  year    = {2025}
+@misc{jain2025polarisscalablerealtosimevaluations,
+      title={PolaRiS: Scalable Real-to-Sim Evaluations for Generalist Robot Policies}, 
+      author={Arhan Jain and Mingtong Zhang and Kanav Arora and William Chen and Marcel Torne and Muhammad Zubair Irshad and Sergey Zakharov and Yue Wang and Sergey Levine and Chelsea Finn and Wei-Chiu Ma and Dhruv Shah and Abhishek Gupta and Karl Pertsch},
+      year={2025},
+      eprint={2512.16881},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2512.16881}, 
 }
 ```
