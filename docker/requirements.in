@@ -1,0 +1,7 @@
+isaaclab[all,isaacsim]==2.3.0
+mediapy>=1.2.4
+opencv-python>=4.11.0.86
+plyfile>=1.1.3
+tyro>=0.9.17
+torch==2.9.1+cu130
+torchvision>=0.24.0

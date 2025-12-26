@@ -1,5 +1,4 @@
 import torch
-import cv2
 from pathlib import Path
 import numpy as np
 
@@ -287,9 +286,5 @@ class ManagerBasedRLSplatEnv(ManagerBasedRLEnv):
             rgb[k] = v.detach().cpu().numpy()
             rgb[k] = np.clip(rgb[k], 0, 1)
             rgb[k] = (rgb[k] * 255).astype(np.uint8)
-
-            # TODO: why is there a resize?
-            rgb[k] = cv2.resize(rgb[k], (rgb[k].shape[1] // 2, rgb[k].shape[0] // 2))
-            rgb[k] = cv2.resize(rgb[k], (rgb[k].shape[1] * 2, rgb[k].shape[0] * 2))
 
         return rgb

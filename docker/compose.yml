@@ -1,0 +1,43 @@
+services:
+  polaris-runtime:
+    image: polaris
+    container_name: polaris-runtime
+    build:
+      context: ../                            
+      dockerfile: docker/Dockerfile.polaris   
+
+    # Interactive shell
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+
+    # GPU access
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+    # Networking
+    network_mode: host
+
+    # Environment variables
+    environment:
+      ACCEPT_EULA: "Y"
+      PRIVACY_CONSENT: "Y"
+      PYTHONPATH: "/workspace/polaris/src:${PYTHONPATH}"
+    # Volumes (exact mapping)
+    volumes:
+      - ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw
+      - ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw
+      - ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw
+      - ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw
+      - ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw
+      - ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw
+      - ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw
+      - ~/docker/isaac-sim/documents:/root/Documents:rw
+
+       # Bind current working directory into /workspace
+      - ${PWD}:/workspace/polaris:rw
