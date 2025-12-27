@@ -30,14 +30,8 @@ services:
       PYTHONPATH: "/workspace/polaris/src:${PYTHONPATH}"
     # Volumes (exact mapping)
     volumes:
-      - ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw
-      - ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw
-      - ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw
-      - ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw
-      - ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw
-      - ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw
-      - ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw
-      - ~/docker/isaac-sim/documents:/root/Documents:rw
+      - ~/docker/isaac-sim/cache:/.venv/lib/python3.11/site-packages/isaacsim/kit/cache:rw 
+      - ~/docker/isaac-sim/data:/.venv/lib/python3.11/site-packages/isaacsim/kit/data:rw
 
        # Bind current working directory into /workspace
       - ${PWD}:/workspace/polaris:rw
