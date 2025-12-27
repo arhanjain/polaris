@@ -1,0 +1,64 @@
+####G
+# Build Stage for CUDA kernels
+####
+FROM nvidia/cuda:13.0.0-devel-ubuntu22.04 AS build
+
+RUN apt-get update && apt-get install -y \
+    git build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+ENV OMNI_KIT_ALLOW_ROOT=1
+WORKDIR /workspace
+
+# Copy the venv from builder
+COPY --from=isaaclab-base:latest /.venv /.venv
+ENV UV_LINK_MODE=copy
+ENV VIRTUAL_ENV=/.venv
+ENV PATH="/.venv/bin:$PATH"
+
+# Optional: you can COPY your code here if you want static code baked in
+RUN uv venv --python 3.11 $UV_PROJECT_ENVIRONMENT
+RUN uv pip install ninja
+
+
+# Set CUDA environment variables for build time
+ENV CUDA_HOME=/usr/local/cuda
+ENV CUDA_PATH=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6"
+ENV FORCE_CUDA=1
+
+RUN git clone https://github.com/arhanjain/splat_kernels.git /tmp/splat_kernels --recursive
+RUN uv pip install --no-build-isolation /tmp/splat_kernels/diff-surfel-rasterization
+RUN uv pip install --no-build-isolation /tmp/splat_kernels/simple-knn
+
+
+
+####
+# Runtime Image 
+####
+FROM isaaclab-base:latest
+
+# Copy the venv from builder
+COPY --from=build /.venv /.venv
+ENV UV_LINK_MODE=copy
+ENV VIRTUAL_ENV=/.venv
+ENV PATH="/.venv/bin:$PATH"
+
+# Optional: you can COPY your code here if you want static code baked in
+RUN uv venv --python 3.11 $UV_PROJECT_ENVIRONMENT
+
+COPY third_party/openpi/packages/openpi-client /tmp/third_party/openpi/packages/openpi-client
+RUN uv pip install /tmp/third_party/openpi/packages/openpi-client
+
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+CMD ["/bin/bash"]
