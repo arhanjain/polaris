@@ -128,10 +128,10 @@ class SceneCfg(InteractiveSceneCfg):
 
         for child in children:
             name = child.GetName()
-            print(name)
 
             # if its a camera, use the camera pose
             if child.IsA(UsdGeom.Camera):
+                print(f"Camera: {name}")
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
                 rot = (
@@ -150,7 +150,8 @@ class SceneCfg(InteractiveSceneCfg):
                     offset=CameraCfg.OffsetCfg(pos=pos, rot=rot, convention="opengl"),
                 )
                 setattr(self, name, asset)
-            elif UsdPhysics.RigidBodyAPI(child):
+            elif UsdPhysics.RigidBodyAPI(child) or any([UsdPhysics.RigidBodyAPI(c) for c in child.GetChildren()]):
+                print(f"Rigid Body: {name}")
                 pos = child.GetAttribute("xformOp:translate").Get()
                 rot = child.GetAttribute("xformOp:orient").Get()
                 rot = (
@@ -170,6 +171,7 @@ class SceneCfg(InteractiveSceneCfg):
                 setattr(self, name, asset)
 
         if not hasattr(self, "external_cam"):
+            print("Camera: external_cam")
             self.external_cam = CameraCfg(
                 prim_path="{ENV_REGEX_NS}/scene/external_cam",
                 height=720,
