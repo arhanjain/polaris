@@ -111,8 +111,8 @@ def main(eval_args: EvalArgs):
             episode_data = {
                 "episode": episode,
                 "episode_length": bar.n,
-                # "success": info["rubric"]["success"],
-                # "progress": info["rubric"]["progress"],
+                "success": info["rubric"]["success"],
+                "progress": info["rubric"]["progress"],
                 "prompt": language_instruction,
             }
             episode_df = pd.concat(
