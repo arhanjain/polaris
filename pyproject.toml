@@ -16,8 +16,8 @@ dependencies = [
     "diff-surfel-rasterization",
     "simple-knn",
     "openpi-client",
-    #"torch>=2.9.0", # Change here for different CUDA version
-    #"torchvision>=0.24.0", # Change here for different CUDA version
+    "torch>=2.9.0", # Change here for different CUDA version
+    "torchvision>=0.24.0", # Change here for different CUDA version
 ]
 
 [project.scripts]
