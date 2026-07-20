@@ -220,7 +220,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print(
-                    "\nAn error occured in forward. Please forward snapshot_fw.dump for debugging."
+                    "\nAn error occurred in forward. Please forward snapshot_fw.dump for debugging."
                 )
                 raise ex
         else:
@@ -310,7 +310,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_bw.dump")
                 print(
-                    "\nAn error occured in backward. Writing snapshot_bw.dump for debugging.\n"
+                    "\nAn error occurred in backward. Writing snapshot_bw.dump for debugging.\n"
                 )
                 raise ex
         else:
